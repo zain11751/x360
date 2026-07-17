@@ -617,6 +617,13 @@ function toNum(v) {
   return isNaN(n) ? 0 : n;
 }
 
+function nextMonthStart(monthKey) {
+  const [y, m] = monthKey.split('-').map(Number);
+  const ny = m === 12 ? y + 1 : y;
+  const nm = m === 12 ? 1 : m + 1;
+  return `${ny}-${String(nm).padStart(2, '0')}-01`;
+}
+
 function computeMarketOrderDerived(row) {
   const total_expense = toNum(row.total_expense);
   const shipping_fee_cost = toNum(row.shipping_fee_cost);
@@ -2072,6 +2079,172 @@ app.get('/api/reporting/monthly-store-statement', requireAuth, enforcePermission
     res.json({ rows: result, totals, include_disputed: includeDisputed });
   } catch (err) {
     console.error('Reporting store statement error:', err);
+    res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+});
+
+// Dashboard — creative-latitude summary view (Section 12.3): reads existing tables live, stores nothing.
+app.get('/api/reporting/dashboard', requireAuth, enforcePermission('reporting', 'view'), async (req, res) => {
+  try {
+    const { store_id } = req.query;
+    const access = await getAccessibleResources(req.user);
+
+    let storeIds;
+    if (store_id) storeIds = [store_id];
+    else if (req.user.role === 'admin') { const { rows } = await db.query('SELECT id FROM stores'); storeIds = rows.map(r => r.id); }
+    else storeIds = access.storeIds;
+
+    if (storeIds.length === 0) {
+      return res.json({
+        year_totals: { gross_revenue: 0, adjusted_net_profit: 0, other_expenses: 0, total_orders: 0 },
+        trend: [], stores: [], top_items: [], recent_imports: [], unmatched_count: 0
+      });
+    }
+
+    const excludedLabels = await getExcludedDisputeLabels();
+    const placeholders = storeIds.map((_, i) => `$${i + 1}`).join(',');
+
+    const now = new Date();
+    const trendStart = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    const trendStartStr = trendStart.toISOString().slice(0, 10);
+    const currentYearStart = `${now.getFullYear()}-01-01`;
+
+    const { rows: marketOrders } = await db.query(
+      `SELECT * FROM market_orders WHERE store_id IN (${placeholders}) AND order_date >= $${storeIds.length + 1}`,
+      [...storeIds, trendStartStr]
+    );
+
+    // Trailing 12 month buckets (for the trend chart)
+    const monthBuckets = {};
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
+      const key = d.toISOString().slice(0, 7);
+      monthBuckets[key] = { month: key, gross_revenue: 0, cogs: 0, platform_net_earnings: 0, other_expenses: 0, other_income: 0, order_count: 0, included_order_ids: [] };
+    }
+
+    // Per-store buckets (current calendar year, for the store breakdown cards)
+    const storeBuckets = {};
+    for (const sid of storeIds) storeBuckets[sid] = { store_id: sid, gross_revenue: 0, cogs: 0, platform_net_earnings: 0, other_expenses: 0, other_income: 0, order_count: 0, included_order_ids: [] };
+
+    const itemCounts = {};
+
+    for (const mo of marketOrders) {
+      const isDisputed = mo.dispute_status && excludedLabels.includes(mo.dispute_status);
+      if (isDisputed) continue;
+
+      const monthKey = String(mo.order_date).slice(0, 7);
+      if (monthBuckets[monthKey]) {
+        const b = monthBuckets[monthKey];
+        b.gross_revenue += toNum(mo.gross_amount);
+        b.platform_net_earnings += toNum(mo.net_earnings);
+        b.order_count++;
+        b.included_order_ids.push(mo.id);
+      }
+
+      if (String(mo.order_date) >= currentYearStart && storeBuckets[mo.store_id]) {
+        const sb = storeBuckets[mo.store_id];
+        sb.gross_revenue += toNum(mo.gross_amount);
+        sb.platform_net_earnings += toNum(mo.net_earnings);
+        sb.order_count++;
+        sb.included_order_ids.push(mo.id);
+
+        if (mo.item_title) {
+          if (!itemCounts[mo.item_title]) itemCounts[mo.item_title] = { item_title: mo.item_title, order_count: 0, total_gross: 0 };
+          itemCounts[mo.item_title].order_count++;
+          itemCounts[mo.item_title].total_gross += toNum(mo.gross_amount);
+        }
+      }
+    }
+
+    // Fill in COGS + expenses/income for each trend month bucket
+    for (const key of Object.keys(monthBuckets)) {
+      const b = monthBuckets[key];
+      const supplierIds = await getMatchedSupplierOrderIds(b.included_order_ids);
+      if (supplierIds.length > 0) {
+        const sp = supplierIds.map((_, i) => `$${i + 1}`).join(',');
+        const { rows: supplierRows } = await db.query(`SELECT total_cost, dispute_status FROM supplier_orders WHERE id IN (${sp})`, supplierIds);
+        for (const so of supplierRows) {
+          if (so.dispute_status && excludedLabels.includes(so.dispute_status)) continue;
+          b.cogs += toNum(so.total_cost);
+        }
+      }
+      const { rows: expenseRows } = await db.query(
+        `SELECT COALESCE(SUM(amount),0) as total FROM expenses WHERE store_id IN (${placeholders}) AND expense_date >= $${storeIds.length + 1} AND expense_date < $${storeIds.length + 2}`,
+        [...storeIds, `${key}-01`, nextMonthStart(key)]
+      );
+      const { rows: incomeRows } = await db.query(
+        `SELECT COALESCE(SUM(amount),0) as total FROM income WHERE store_id IN (${placeholders}) AND income_date >= $${storeIds.length + 1} AND income_date < $${storeIds.length + 2}`,
+        [...storeIds, `${key}-01`, nextMonthStart(key)]
+      );
+      b.other_expenses = toNum(expenseRows[0].total);
+      b.other_income = toNum(incomeRows[0].total);
+      b.net_profit = b.platform_net_earnings - b.cogs;
+      b.adjusted_net_profit = b.net_profit + b.other_income - b.other_expenses;
+      delete b.included_order_ids;
+    }
+
+    // Fill in COGS + expenses/income for each store bucket (current year)
+    const { rows: storeRows } = await db.query(`SELECT id, name FROM stores WHERE id IN (${placeholders})`, storeIds);
+    const storeNames = {};
+    for (const s of storeRows) storeNames[s.id] = s.name;
+
+    for (const sid of Object.keys(storeBuckets)) {
+      const sb = storeBuckets[sid];
+      const supplierIds = await getMatchedSupplierOrderIds(sb.included_order_ids);
+      if (supplierIds.length > 0) {
+        const sp = supplierIds.map((_, i) => `$${i + 1}`).join(',');
+        const { rows: supplierRows } = await db.query(`SELECT total_cost, dispute_status FROM supplier_orders WHERE id IN (${sp})`, supplierIds);
+        for (const so of supplierRows) {
+          if (so.dispute_status && excludedLabels.includes(so.dispute_status)) continue;
+          sb.cogs += toNum(so.total_cost);
+        }
+      }
+      const { rows: expenseRows } = await db.query(`SELECT COALESCE(SUM(amount),0) as total FROM expenses WHERE store_id = $1 AND expense_date >= $2`, [sid, currentYearStart]);
+      const { rows: incomeRows } = await db.query(`SELECT COALESCE(SUM(amount),0) as total FROM income WHERE store_id = $1 AND income_date >= $2`, [sid, currentYearStart]);
+      sb.other_expenses = toNum(expenseRows[0].total);
+      sb.other_income = toNum(incomeRows[0].total);
+      sb.net_profit = sb.platform_net_earnings - sb.cogs;
+      sb.adjusted_net_profit = sb.net_profit + sb.other_income - sb.other_expenses;
+      sb.store_name = storeNames[sid] || 'Unknown';
+      delete sb.included_order_ids;
+    }
+
+    const yearTotals = { gross_revenue: 0, adjusted_net_profit: 0, other_expenses: 0, total_orders: 0 };
+    for (const sid of Object.keys(storeBuckets)) {
+      const sb = storeBuckets[sid];
+      yearTotals.gross_revenue += sb.gross_revenue;
+      yearTotals.adjusted_net_profit += sb.adjusted_net_profit;
+      yearTotals.other_expenses += sb.other_expenses;
+      yearTotals.total_orders += sb.order_count;
+    }
+
+    const topItems = Object.values(itemCounts).sort((a, b) => b.order_count - a.order_count).slice(0, 5);
+
+    const { rows: recentImports } = await db.query(
+      `SELECT id, file_name, import_type, status, success_rows, failed_rows, total_rows, started_at FROM import_logs WHERE store_id IN (${placeholders}) ORDER BY started_at DESC LIMIT 5`,
+      storeIds
+    );
+
+    const p1 = storeIds.map((_, i) => `$${i + 1}`).join(',');
+    const p2 = storeIds.map((_, i) => `$${storeIds.length + i + 1}`).join(',');
+    const { rows: unmatchedRows } = await db.query(
+      `SELECT COUNT(*)::int as count FROM order_matches om
+       LEFT JOIN market_orders mo ON om.market_order_id = mo.id
+       LEFT JOIN supplier_orders so ON om.supplier_order_id = so.id
+       WHERE om.match_status != 'matched' AND (mo.store_id IN (${p1}) OR so.store_id IN (${p2}))`,
+      [...storeIds, ...storeIds]
+    );
+
+    res.json({
+      year_totals: yearTotals,
+      trend: Object.values(monthBuckets).sort((a, b) => a.month.localeCompare(b.month)),
+      stores: Object.values(storeBuckets).sort((a, b) => b.gross_revenue - a.gross_revenue),
+      top_items: topItems,
+      recent_imports: recentImports,
+      unmatched_count: unmatchedRows[0].count
+    });
+  } catch (err) {
+    console.error('Dashboard error:', err);
     res.status(500).json({ error: err.message || 'Internal server error' });
   }
 });

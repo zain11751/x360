@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
   Users, ShieldAlert, Settings, LogOut, Plus, Edit2, Trash2, Check, X,
   ChevronDown, Building, Store, Filter, RefreshCw, AlertTriangle, Eye, EyeOff,
-  ShoppingCart, Package, Link as LinkIcon, DollarSign, TrendingUp, TrendingDown, Upload, BarChart2
+  ShoppingCart, Package, Link as LinkIcon, DollarSign, TrendingUp, TrendingDown, Upload, BarChart2, LayoutDashboard
 } from 'lucide-react';
+import Dashboard from './Dashboard.jsx';
 import MarketOrders from './MarketOrders.jsx';
 import SupplierOrders from './SupplierOrders.jsx';
 import OrderMatching from './OrderMatching.jsx';
@@ -12,6 +13,7 @@ import ExpenseTab from './ExpenseTab.jsx';
 import IncomeTab from './IncomeTab.jsx';
 import ImportCenter from './ImportCenter.jsx';
 import ReportingTab from './ReportingTab.jsx';
+import ErrorBoundary from './ErrorBoundary.jsx';
 
 const API_BASE = (import.meta.env.VITE_API_URL || '') + '/api';
 
@@ -21,7 +23,7 @@ export default function App() {
   const [loginEmail, setLoginEmail] = useState('admin@x360.com');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   // Selector State
   const [businesses, setBusinesses] = useState([]);
@@ -620,6 +622,15 @@ export default function App() {
               Navigation
             </div>
 
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'dashboard' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+            >
+              <LayoutDashboard size={18} />
+              <span>Dashboard</span>
+            </button>
+            <div className="pt-2 mt-2 border-t border-gray-100" />
+
             {user.role === 'admin' && (
               <>
                 <button
@@ -693,6 +704,7 @@ export default function App() {
 
         {/* MAIN PANEL */}
         <main className="flex-1 bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden p-6">
+          <ErrorBoundary key={activeTab}>
 
           {/* TAB 1: USERS & PERMISSIONS */}
           {activeTab === 'users' && user.role === 'admin' && (
@@ -1204,10 +1216,19 @@ export default function App() {
           {activeTab === 'import_center' && (user.role === 'admin' || user.role === 'bookkeeper') && (
             <ImportCenter apiBase={API_BASE} authHeaders={getAuthHeaders} stores={stores} />
           )}
+          {activeTab === 'dashboard' && (
+            <Dashboard
+              apiBase={API_BASE}
+              authHeaders={getAuthHeaders}
+              onGoToReporting={() => setActiveTab('reporting')}
+              onGoToMatching={() => setActiveTab((user.role === 'admin' || user.role === 'bookkeeper') ? 'order_matching' : 'reporting')}
+            />
+          )}
           {activeTab === 'reporting' && (
             <ReportingTab apiBase={API_BASE} authHeaders={getAuthHeaders} stores={stores} selectedStoreIds={selectedStoreIds} selectedBusinessId={selectedBusinessId} />
           )}
 
+          </ErrorBoundary>
         </main>
       </div>
 

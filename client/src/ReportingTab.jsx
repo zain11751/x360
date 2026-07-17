@@ -9,19 +9,53 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [statement, setStatement] = useState(null);
   const [drillDown, setDrillDown] = useState(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const loadPnl = async () => {
-    const params = new URLSearchParams({ year, include_disputed: includeDisputed });
-    if (storeId) params.append('store_id', storeId);
-    const res = await fetch(`${apiBase}/reporting/monthly-pnl?${params.toString()}`, { headers: authHeaders() });
-    setPnl(await res.json());
+    setError('');
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ year, include_disputed: includeDisputed });
+      if (storeId) params.append('store_id', storeId);
+      const res = await fetch(`${apiBase}/reporting/monthly-pnl?${params.toString()}`, { headers: authHeaders() });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Failed to load Monthly P&L');
+        setPnl(null);
+        return;
+      }
+      setPnl(data);
+    } catch (err) {
+      console.error('Error loading P&L:', err);
+      setError('Failed to load Monthly P&L. Please try again.');
+      setPnl(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadStatement = async () => {
     if (!storeId) { setStatement(null); return; }
-    const params = new URLSearchParams({ store_id: storeId, month, include_disputed: includeDisputed });
-    const res = await fetch(`${apiBase}/reporting/monthly-store-statement?${params.toString()}`, { headers: authHeaders() });
-    setStatement(await res.json());
+    setError('');
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ store_id: storeId, month, include_disputed: includeDisputed });
+      const res = await fetch(`${apiBase}/reporting/monthly-store-statement?${params.toString()}`, { headers: authHeaders() });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Failed to load Store Statement');
+        setStatement(null);
+        return;
+      }
+      setStatement(data);
+    } catch (err) {
+      console.error('Error loading statement:', err);
+      setError('Failed to load Store Statement. Please try again.');
+      setStatement(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { if (view === 'pnl') loadPnl(); }, [view, year, storeId, includeDisputed]);
@@ -70,7 +104,17 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
         {statement && <span className="text-gray-400">(dispute filter: {statement.include_disputed ? 'including' : 'excluding'} disputed)</span>}
       </div>
 
-      {view === 'pnl' && pnl && (
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded p-3 mb-4">
+          {error}
+        </div>
+      )}
+
+      {loading && (
+        <div className="text-center text-gray-400 py-4 text-sm">Loading...</div>
+      )}
+
+      {view === 'pnl' && pnl && pnl.months && (
         <div className="overflow-x-auto border rounded">
           <table className="min-w-full text-xs">
             <thead className="bg-gray-50">
@@ -101,7 +145,7 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
       {view === 'statement' && (
         !storeId ? (
           <div className="text-center text-gray-400 py-8">Select a single store to view its Monthly Store Statement.</div>
-        ) : statement && (
+        ) : statement && statement.rows && (
           <div className="overflow-x-auto border rounded">
             <table className="min-w-full text-xs">
               <thead className="bg-gray-50">
@@ -113,28 +157,31 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
                     <td className="px-3 py-2">{r.order_date}</td>
                     <td className="px-3 py-2 font-mono">{r.market_order_id}</td>
                     <td className="px-3 py-2 max-w-[140px] truncate">{r.item_title}</td>
-                    <td className="px-3 py-2">${r.total_price.toFixed(2)}</td>
-                    <td className="px-3 py-2">${r.order_earnings.toFixed(2)}</td>
-                    <td className="px-3 py-2">${r.cogs.toFixed(2)}</td>
+                    <td className="px-3 py-2">${Number(r.total_price || 0).toFixed(2)}</td>
+                    <td className="px-3 py-2">${Number(r.order_earnings || 0).toFixed(2)}</td>
+                    <td className="px-3 py-2">${Number(r.cogs || 0).toFixed(2)}</td>
                     <td className="px-3 py-2">{r.order_status}</td>
                     <td className="px-3 py-2">{r.dispute_status}</td>
-                    <td className="px-3 py-2">${r.net_profit.toFixed(2)}</td>
+                    <td className="px-3 py-2">${Number(r.net_profit || 0).toFixed(2)}</td>
                     <td className="px-3 py-2 max-w-[140px] truncate">{r.comments}</td>
                   </tr>
                 ))}
+                {statement.rows.length === 0 && (
+                  <tr><td colSpan={10} className="px-3 py-6 text-center text-gray-400">No orders for this month.</td></tr>
+                )}
               </tbody>
               <tfoot className="bg-gray-50 font-bold">
                 <tr>
-                  <td className="px-3 py-2" colSpan={3}>Totals ({statement.totals.total_orders} orders)</td>
-                  <td className="px-3 py-2">${statement.totals.total_price.toFixed(2)}</td>
-                  <td className="px-3 py-2">${statement.totals.total_earnings.toFixed(2)}</td>
-                  <td className="px-3 py-2">${statement.totals.total_cogs.toFixed(2)}</td>
+                  <td className="px-3 py-2" colSpan={3}>Totals ({statement.totals?.total_orders || 0} orders)</td>
+                  <td className="px-3 py-2">${Number(statement.totals?.total_price || 0).toFixed(2)}</td>
+                  <td className="px-3 py-2">${Number(statement.totals?.total_earnings || 0).toFixed(2)}</td>
+                  <td className="px-3 py-2">${Number(statement.totals?.total_cogs || 0).toFixed(2)}</td>
                   <td className="px-3 py-2" colSpan={2}></td>
-                  <td className="px-3 py-2">${statement.totals.total_net_profit.toFixed(2)}</td>
+                  <td className="px-3 py-2">${Number(statement.totals?.total_net_profit || 0).toFixed(2)}</td>
                   <td className="px-3 py-2"></td>
                 </tr>
                 <tr>
-                  <td className="px-3 py-2" colSpan={10}>Gross Margin: {statement.totals.gross_margin.toFixed(1)}% &nbsp; | &nbsp; Net Margin: {statement.totals.net_margin.toFixed(1)}%</td>
+                  <td className="px-3 py-2" colSpan={10}>Gross Margin: {Number(statement.totals?.gross_margin || 0).toFixed(1)}% &nbsp; | &nbsp; Net Margin: {Number(statement.totals?.net_margin || 0).toFixed(1)}%</td>
                 </tr>
               </tfoot>
             </table>
