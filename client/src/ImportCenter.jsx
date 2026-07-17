@@ -4,9 +4,21 @@ import { Upload, Download, RefreshCw, X } from 'lucide-react';
 const EARNINGS_FIELDS = ['market_order_id','order_date','item_title','buyer_name','buyer_state','gross_amount','platform_fee','ads_fee','shipping_fee_cost','total_expense','refund_amount','net_earnings'];
 const SUPPLIER_FIELDS = ['supplier_order_id','source_vendor','supplier_store_name','match_key','supplier_order_date','supplier_order_status','item_title','order_qty','unit_price','shipping_cost','price_adjustment','discount_total','other_total','tax_total','supplier_order_total','payment_method','tracking_number','tracking_carrier','buyer_name','ship_state','supplier_refund_status','refunded_amount','date_refunded','supplier_notes'];
 const TRANSACTION_FIELDS = ['transaction_date','transaction_type','market_order_id','net_amount','gross_transaction_amount','payout_batch_id','payout_date','payout_status','item_title','description'];
+const TRANSACTIONS_AUTOMAP = {
+  transaction_date: ['Transaction creation date'],
+  transaction_type: ['Type'],
+  market_order_id: ['Order number'],
+  net_amount: ['Net amount'],
+  gross_transaction_amount: ['Gross transaction amount'],
+  payout_batch_id: ['Payout ID'],
+  payout_date: ['Payout date'],
+  payout_status: ['Payout status'],
+  item_title: ['Item title'],
+  description: ['Description']
+};
 
-const EBAY_EARNINGS_AUTOMAP = { market_order_id: 'Order number', order_date: 'Order creation date', item_title: 'Item title', buyer_name: 'Buyer name', buyer_state: 'Ship to province/region/state', gross_amount: 'Gross amount', ads_fee: 'Promoted Listing Standard fee', shipping_fee_cost: 'Shipping labels', total_expense: 'Expenses', refund_amount: 'Refunds', net_earnings: 'Order earnings' };
-const SUPPLIER_AUTOMAP = { source_vendor: 'Source_Vendor', supplier_store_name: 'supplier_store_name', supplier_order_id: 'supplier_order_id', match_key: 'Match Key / Reference Order Number', supplier_order_date: 'supplier_order_date', supplier_order_status: 'supplier_order_status', item_title: 'item_titles', order_qty: 'order_qty', unit_price: 'unit_price', shipping_cost: 'shipping_cost', price_adjustment: 'price_adjustment', discount_total: 'discount_total', other_total: 'other_total', tax_total: 'tax_total', supplier_order_total: 'supplier_order_total', payment_method: 'payment_method', tracking_number: 'tracking_number', tracking_carrier: 'tracking_carrier', buyer_name: 'buyer_name', ship_state: 'ship_state_region', supplier_refund_status: 'supplier_refund_status', refunded_amount: 'Refunded_Amount', date_refunded: 'Date_Refunded', supplier_notes: 'Supplier_Notes' };
+const EBAY_EARNINGS_AUTOMAP = { market_order_id: 'Order number', order_date: 'Order creation date', item_title: 'Item title', buyer_name: 'Buyer name', buyer_state: 'Ship to province/region/state', gross_amount: 'Gross amount', platform_fee: { sum: ['Final Value Fee - fixed', 'Final Value Fee - variable'] }, ads_fee: 'Promoted Listing Standard fee', shipping_fee_cost: 'Shipping labels', total_expense: 'Expenses', refund_amount: 'Refunds', net_earnings: 'Order earnings' };
+const SUPPLIER_AUTOMAP = { source_vendor: ['Source_Vendor', 'Supplier', 'source_site'], supplier_store_name: ['supplier_store_name'], supplier_order_id: ['supplier_order_id', 'Order ID'], match_key: ['Match Key / Reference Order Number', 'Order ID', 'linked_sales_order_id'], supplier_order_date: ['supplier_order_date'], supplier_order_status: ['supplier_order_status'], item_title: ['item_titles'], order_qty: ['order_qty', 'item_count'], unit_price: ['unit_price', 'Item Cost'], shipping_cost: ['shipping_cost'], price_adjustment: ['price_adjustment'], discount_total: ['discount_total'], other_total: ['other_total'], tax_total: ['tax_total'], supplier_order_total: ['supplier_order_total'], payment_method: ['payment_method'], tracking_number: ['tracking_number'], tracking_carrier: ['tracking_carrier'], buyer_name: ['buyer_name'], ship_state: ['ship_state_region'], supplier_refund_status: ['supplier_refund_status'], refunded_amount: ['Refunded_Amount'], date_refunded: ['Date_Refunded'], supplier_notes: ['Supplier_Notes', 'manual_notes'] };
 
 export default function ImportCenter({ apiBase, authHeaders, stores }) {
   const [view, setView] = useState('import'); // import | logs | detail
@@ -54,11 +66,24 @@ export default function ImportCenter({ apiBase, authHeaders, stores }) {
     let automap = {};
     if (importType === 'market_orders' && marketOrderSource === 'earnings') automap = EBAY_EARNINGS_AUTOMAP;
     else if (importType === 'supplier_orders') automap = SUPPLIER_AUTOMAP;
+    else if (importType === 'transactions') automap = TRANSACTIONS_AUTOMAP;
     const initialMapping = {};
     fields.forEach(f => {
       const guess = automap[f];
-      if (guess && data.headers.includes(guess)) initialMapping[f] = guess;
-      else initialMapping[f] = '';
+      if (guess && typeof guess === 'object' && !Array.isArray(guess) && guess.sum) {
+        // Explicit sum-of-columns (e.g. two fee columns added together)
+        const allPresent = guess.sum.every(g => data.headers.includes(g));
+        initialMapping[f] = allPresent ? guess.sum : '';
+      } else if (Array.isArray(guess)) {
+        // Candidate list — different export tools use different column names for the same field;
+        // use whichever candidate actually appears in this file.
+        const found = guess.find(g => data.headers.includes(g));
+        initialMapping[f] = found || '';
+      } else if (guess && data.headers.includes(guess)) {
+        initialMapping[f] = guess;
+      } else {
+        initialMapping[f] = '';
+      }
     });
     setMapping(initialMapping);
   };
@@ -163,16 +188,32 @@ export default function ImportCenter({ apiBase, authHeaders, stores }) {
             <div className="border rounded p-4 space-y-3">
               <h3 className="font-bold text-sm">Column Mapping ({preview.total_rows} rows detected)</h3>
               <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
-                {fields.map(f => (
-                  <div key={f} className="flex items-center gap-2 text-xs">
-                    <label className="w-40 font-semibold text-gray-600">{f.replace(/_/g,' ')}</label>
-                    <select value={mapping[f] || ''} onChange={e => setMapping({...mapping, [f]: e.target.value})} className="flex-1 border rounded px-1 py-1">
-                      <option value="">— not mapped —</option>
-                      {preview.headers.map(h => <option key={h} value={h}>{h}</option>)}
-                    </select>
-                  </div>
-                ))}
+                {fields.map(f => {
+                  const current = mapping[f];
+                  const currentArr = Array.isArray(current) ? current : (current ? [current] : []);
+                  return (
+                    <div key={f} className="flex items-start gap-2 text-xs">
+                      <label className="w-40 font-semibold text-gray-600 pt-1">{f.replace(/_/g,' ')}</label>
+                      <div className="flex-1">
+                        <select
+                          multiple
+                          size={Math.min(4, Math.max(2, preview.headers.length > 20 ? 3 : 2))}
+                          value={currentArr}
+                          onChange={e => {
+                            const selected = Array.from(e.target.selectedOptions).map(o => o.value);
+                            setMapping({ ...mapping, [f]: selected.length <= 1 ? (selected[0] || '') : selected });
+                          }}
+                          className="w-full border rounded px-1 py-1"
+                        >
+                          {preview.headers.map(h => <option key={h} value={h}>{h}</option>)}
+                        </select>
+                        {currentArr.length > 1 && <div className="text-[10px] text-gray-400 mt-0.5">Summing {currentArr.length} columns</div>}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
+              <p className="text-[10px] text-gray-400">Hold Ctrl (Windows) or Cmd (Mac) and click to select more than one column for a field that should be summed (e.g. two fee columns added together).</p>
 
               <h4 className="font-bold text-xs mt-2">Preview (first {preview.preview.length} rows)</h4>
               <div className="overflow-x-auto border rounded max-h-40">

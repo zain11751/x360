@@ -622,14 +622,18 @@ export default function App() {
               Navigation
             </div>
 
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'dashboard' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
-            >
-              <LayoutDashboard size={18} />
-              <span>Dashboard</span>
-            </button>
-            <div className="pt-2 mt-2 border-t border-gray-100" />
+            {(user.role === 'admin' || user.role === 'client') && (
+              <>
+                <button
+                  onClick={() => setActiveTab('dashboard')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'dashboard' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+                >
+                  <LayoutDashboard size={18} />
+                  <span>Dashboard</span>
+                </button>
+                <div className="pt-2 mt-2 border-t border-gray-100" />
+              </>
+            )}
 
             {user.role === 'admin' && (
               <>
@@ -1216,7 +1220,7 @@ export default function App() {
           {activeTab === 'import_center' && (user.role === 'admin' || user.role === 'bookkeeper') && (
             <ImportCenter apiBase={API_BASE} authHeaders={getAuthHeaders} stores={stores} />
           )}
-          {activeTab === 'dashboard' && (
+          {activeTab === 'dashboard' && (user.role === 'admin' || user.role === 'client') && (
             <Dashboard
               apiBase={API_BASE}
               authHeaders={getAuthHeaders}

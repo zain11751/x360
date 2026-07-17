@@ -1431,11 +1431,20 @@ function parseCSV(text) {
 }
 
 function findHeaderRowIndex(rows) {
-  for (let i = 0; i < rows.length; i++) {
-    const nonBlank = rows[i].filter(c => c && c.trim() !== '').length;
-    if (nonBlank > 1) return i;
+  // Scan the first N rows and pick the one with the most non-blank cells — this is far more
+  // reliable than "first row with >1 non-blank cell", since many real export files (eBay, etc.)
+  // have leading notes/junk rows that use placeholder characters like "--" instead of truly blank cells.
+  const scanLimit = Math.min(rows.length, 50);
+  let bestIdx = 0;
+  let bestCount = -1;
+  for (let i = 0; i < scanLimit; i++) {
+    const nonBlank = rows[i].filter(c => c && c.trim() !== '' && c.trim() !== '--').length;
+    if (nonBlank > bestCount) {
+      bestCount = nonBlank;
+      bestIdx = i;
+    }
   }
-  return 0;
+  return bestIdx;
 }
 
 function csvToObjects(text) {
@@ -2097,7 +2106,8 @@ app.get('/api/reporting/dashboard', requireAuth, enforcePermission('reporting', 
     if (storeIds.length === 0) {
       return res.json({
         year_totals: { gross_revenue: 0, adjusted_net_profit: 0, other_expenses: 0, total_orders: 0 },
-        trend: [], stores: [], top_items: [], recent_imports: [], unmatched_count: 0
+        trend: [], stores: [], top_items: [], recent_imports: [], unmatched_count: 0,
+        hold_amount: 0, hold_order_count: 0
       });
     }
 
@@ -2127,10 +2137,16 @@ app.get('/api/reporting/dashboard', requireAuth, enforcePermission('reporting', 
     for (const sid of storeIds) storeBuckets[sid] = { store_id: sid, gross_revenue: 0, cogs: 0, platform_net_earnings: 0, other_expenses: 0, other_income: 0, order_count: 0, included_order_ids: [] };
 
     const itemCounts = {};
+    let holdAmount = 0;
+    let holdOrderCount = 0;
 
     for (const mo of marketOrders) {
       const isDisputed = mo.dispute_status && excludedLabels.includes(mo.dispute_status);
-      if (isDisputed) continue;
+      if (isDisputed) {
+        holdAmount += toNum(mo.net_earnings);
+        holdOrderCount++;
+        continue;
+      }
 
       const monthKey = String(mo.order_date).slice(0, 7);
       if (monthBuckets[monthKey]) {
@@ -2241,7 +2257,9 @@ app.get('/api/reporting/dashboard', requireAuth, enforcePermission('reporting', 
       stores: Object.values(storeBuckets).sort((a, b) => b.gross_revenue - a.gross_revenue),
       top_items: topItems,
       recent_imports: recentImports,
-      unmatched_count: unmatchedRows[0].count
+      unmatched_count: unmatchedRows[0].count,
+      hold_amount: holdAmount,
+      hold_order_count: holdOrderCount
     });
   } catch (err) {
     console.error('Dashboard error:', err);

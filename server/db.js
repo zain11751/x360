@@ -2,7 +2,16 @@ import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
 
-const { Pool } = pg;
+const { Pool, types } = pg;
+
+// node-postgres parses DATE/TIMESTAMP columns into JS Date objects by default. This app works with
+// them as plain 'YYYY-MM-DD' strings everywhere (parsing, comparisons, month-grouping via .slice(0,7),
+// etc.) — left as Date objects, String(dateObj).slice(0,7) silently produces garbage like "Wed Jul"
+// instead of "2026-07", which then breaks any query built from it ("invalid input syntax for type date").
+// Returning the raw text disables that implicit conversion so every date stays a plain string.
+types.setTypeParser(1082, val => val); // DATE
+types.setTypeParser(1114, val => val); // TIMESTAMP WITHOUT TIME ZONE
+types.setTypeParser(1184, val => val); // TIMESTAMP WITH TIME ZONE
 
 const isProduction = process.env.NODE_ENV === 'production' || process.env.DATABASE_URL;
 
