@@ -13,6 +13,9 @@ const port = process.env.PORT || 3001;
 
 // Middlewares
 app.use(cors());
+// Express's json() body-parser defaults to a 100kb limit — far below the 10MB CSV files this app
+// accepts via Import Center (the file content is sent as a JSON string field). Without raising this,
+// any real-world import over ~100KB is silently rejected before it ever reaches our route handlers.
 app.use(express.json({ limit: '15mb' }));
 
 // Bootstrapping: Ensure at least one active Admin user exists
@@ -613,8 +616,22 @@ app.delete('/api/custom-field-options/:id', requireAuth, enforcePermission('sett
 // ============================================================
 
 function toNum(v) {
-  const n = parseFloat(v);
-  return isNaN(n) ? 0 : n;
+  if (v === null || v === undefined || v === '') return 0;
+  if (typeof v === 'number') return isNaN(v) ? 0 : v;
+  let str = String(v).trim();
+  // Accounting-style negatives: "(42.38)" means -42.38
+  let negative = false;
+  if (/^\(.*\)$/.test(str)) {
+    negative = true;
+    str = str.slice(1, -1);
+  }
+  // Strip everything except digits, a decimal point, and a minus sign — handles currency symbols,
+  // currency codes ("US $42.38", "42.38 USD"), and thousand separators ("1,234.56") in one pass.
+  const cleaned = str.replace(/[^0-9.\-]/g, '');
+  let n = parseFloat(cleaned);
+  if (isNaN(n)) return 0;
+  if (negative) n = -Math.abs(n);
+  return n;
 }
 
 function nextMonthStart(monthKey) {
@@ -2095,13 +2112,23 @@ app.get('/api/reporting/monthly-store-statement', requireAuth, enforcePermission
 // Dashboard — creative-latitude summary view (Section 12.3): reads existing tables live, stores nothing.
 app.get('/api/reporting/dashboard', requireAuth, enforcePermission('reporting', 'view'), async (req, res) => {
   try {
-    const { store_id } = req.query;
+    const { store_id, business_id } = req.query;
     const access = await getAccessibleResources(req.user);
 
     let storeIds;
-    if (store_id) storeIds = [store_id];
-    else if (req.user.role === 'admin') { const { rows } = await db.query('SELECT id FROM stores'); storeIds = rows.map(r => r.id); }
-    else storeIds = access.storeIds;
+    if (store_id) {
+      storeIds = [store_id];
+    } else if (business_id) {
+      // Scope to just the stores under this business that the user is actually allowed to see —
+      // never trust business_id alone, still intersect with their accessible store list.
+      const { rows } = await db.query('SELECT id FROM stores WHERE business_id = $1', [business_id]);
+      const businessStoreIds = rows.map(r => r.id);
+      storeIds = req.user.role === 'admin' ? businessStoreIds : businessStoreIds.filter(id => access.storeIds.includes(id));
+    } else if (req.user.role === 'admin') {
+      const { rows } = await db.query('SELECT id FROM stores'); storeIds = rows.map(r => r.id);
+    } else {
+      storeIds = access.storeIds;
+    }
 
     if (storeIds.length === 0) {
       return res.json({
@@ -2225,6 +2252,71 @@ app.get('/api/reporting/dashboard', requireAuth, enforcePermission('reporting', 
       delete sb.included_order_ids;
     }
 
+    // ---- Per-store, per-month breakdown (trailing 12 months) ----
+    // Powers: the hover tooltip and click-to-drill-down on the trend chart, and a small
+    // per-store sparkline on each store's breakdown card. Reuses the same market order rows
+    // already fetched above; only expenses/income need a fresh (batched, not per-month) fetch.
+    const storeMonthBuckets = {};
+    for (const sid of storeIds) {
+      storeMonthBuckets[sid] = {};
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
+        const key = d.toISOString().slice(0, 7);
+        storeMonthBuckets[sid][key] = { month: key, gross_revenue: 0, cogs: 0, platform_net_earnings: 0, other_expenses: 0, other_income: 0, order_count: 0, included_order_ids: [] };
+      }
+    }
+
+    for (const mo of marketOrders) {
+      const isDisputed = mo.dispute_status && excludedLabels.includes(mo.dispute_status);
+      if (isDisputed) continue;
+      const monthKey = String(mo.order_date).slice(0, 7);
+      const smb = storeMonthBuckets[mo.store_id];
+      if (smb && smb[monthKey]) {
+        const b = smb[monthKey];
+        b.gross_revenue += toNum(mo.gross_amount);
+        b.platform_net_earnings += toNum(mo.net_earnings);
+        b.order_count++;
+        b.included_order_ids.push(mo.id);
+      }
+    }
+
+    const { rows: allExpensesTrend } = await db.query(
+      `SELECT store_id, expense_date, amount FROM expenses WHERE store_id IN (${placeholders}) AND expense_date >= $${storeIds.length + 1}`,
+      [...storeIds, trendStartStr]
+    );
+    const { rows: allIncomeTrend } = await db.query(
+      `SELECT store_id, income_date, amount FROM income WHERE store_id IN (${placeholders}) AND income_date >= $${storeIds.length + 1}`,
+      [...storeIds, trendStartStr]
+    );
+    for (const e of allExpensesTrend) {
+      const key = String(e.expense_date).slice(0, 7);
+      const smb = storeMonthBuckets[e.store_id];
+      if (smb && smb[key]) smb[key].other_expenses += toNum(e.amount);
+    }
+    for (const inc of allIncomeTrend) {
+      const key = String(inc.income_date).slice(0, 7);
+      const smb = storeMonthBuckets[inc.store_id];
+      if (smb && smb[key]) smb[key].other_income += toNum(inc.amount);
+    }
+
+    for (const sid of Object.keys(storeMonthBuckets)) {
+      for (const key of Object.keys(storeMonthBuckets[sid])) {
+        const b = storeMonthBuckets[sid][key];
+        const supplierIds = await getMatchedSupplierOrderIds(b.included_order_ids);
+        if (supplierIds.length > 0) {
+          const sp = supplierIds.map((_, i) => `$${i + 1}`).join(',');
+          const { rows: supplierRows } = await db.query(`SELECT total_cost, dispute_status FROM supplier_orders WHERE id IN (${sp})`, supplierIds);
+          for (const so of supplierRows) {
+            if (so.dispute_status && excludedLabels.includes(so.dispute_status)) continue;
+            b.cogs += toNum(so.total_cost);
+          }
+        }
+        b.net_profit = b.platform_net_earnings - b.cogs;
+        b.adjusted_net_profit = b.net_profit + b.other_income - b.other_expenses;
+        delete b.included_order_ids;
+      }
+    }
+
     const yearTotals = { gross_revenue: 0, adjusted_net_profit: 0, other_expenses: 0, total_orders: 0 };
     for (const sid of Object.keys(storeBuckets)) {
       const sb = storeBuckets[sid];
@@ -2251,10 +2343,34 @@ app.get('/api/reporting/dashboard', requireAuth, enforcePermission('reporting', 
       [...storeIds, ...storeIds]
     );
 
+    // Attach a 12-month sparkline trend onto each store card
+    const storesWithTrend = Object.values(storeBuckets)
+      .sort((a, b) => b.gross_revenue - a.gross_revenue)
+      .map(sb => ({
+        ...sb,
+        trend: Object.values(storeMonthBuckets[sb.store_id] || {}).sort((a, b) => a.month.localeCompare(b.month))
+      }));
+
+    // Attach a per-store breakdown onto each point of the global trend line (for click-to-drill-down)
+    const trendWithByStore = Object.values(monthBuckets)
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map(m => ({
+        ...m,
+        by_store: storeIds.map(sid => {
+          const b = (storeMonthBuckets[sid] || {})[m.month] || {};
+          return {
+            store_id: sid,
+            store_name: storeNames[sid] || 'Unknown',
+            gross_revenue: b.gross_revenue || 0,
+            adjusted_net_profit: b.adjusted_net_profit || 0
+          };
+        })
+      }));
+
     res.json({
       year_totals: yearTotals,
-      trend: Object.values(monthBuckets).sort((a, b) => a.month.localeCompare(b.month)),
-      stores: Object.values(storeBuckets).sort((a, b) => b.gross_revenue - a.gross_revenue),
+      trend: trendWithByStore,
+      stores: storesWithTrend,
       top_items: topItems,
       recent_imports: recentImports,
       unmatched_count: unmatchedRows[0].count,
