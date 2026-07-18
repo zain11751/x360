@@ -137,31 +137,31 @@ export default function Dashboard({ apiBase, authHeaders, onGoToReporting, onGoT
           <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase mb-2">
             <DollarSign size={14} /> Gross Revenue
           </div>
-          <div className="text-3xl font-bold text-gray-900 font-mono tracking-tight">{fmtMoney(t.gross_revenue)}</div>
+          <div className="text-xl font-bold text-gray-900 font-mono tracking-tight truncate">{fmtMoney(t.gross_revenue)}</div>
         </div>
         <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-card hover:shadow-cardHover transition-shadow">
           <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase mb-2">
             <TrendingUp size={14} /> Adjusted Net Profit
           </div>
-          <div className={`text-3xl font-bold font-mono tracking-tight ${t.adjusted_net_profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{fmtMoney(t.adjusted_net_profit)}</div>
+          <div className={`text-xl font-bold font-mono tracking-tight truncate ${t.adjusted_net_profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{fmtMoney(t.adjusted_net_profit)}</div>
         </div>
         <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-card hover:shadow-cardHover transition-shadow">
           <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase mb-2">
             <TrendingDown size={14} /> Other Expenses
           </div>
-          <div className="text-3xl font-bold text-gray-900 font-mono tracking-tight">{fmtMoney(t.other_expenses)}</div>
+          <div className="text-xl font-bold text-gray-900 font-mono tracking-tight truncate">{fmtMoney(t.other_expenses)}</div>
         </div>
         <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-card hover:shadow-cardHover transition-shadow">
           <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase mb-2">
             <ShoppingCart size={14} /> Total Orders
           </div>
-          <div className="text-3xl font-bold text-gray-900 font-mono tracking-tight">{t.total_orders}</div>
+          <div className="text-xl font-bold text-gray-900 font-mono tracking-tight truncate">{t.total_orders}</div>
         </div>
         <div className="bg-white border border-amber-200 rounded-lg p-4 shadow-sm">
           <div className="flex items-center gap-2 text-amber-500 text-xs font-bold uppercase mb-2">
             <AlertTriangle size={14} /> Amount on Hold (Disputed)
           </div>
-          <div className="text-3xl font-bold font-mono tracking-tight text-amber-700">{fmtMoney(holdAmount)}</div>
+          <div className="text-xl font-bold font-mono tracking-tight truncate text-amber-700">{fmtMoney(holdAmount)}</div>
           <div className="text-xs text-gray-400 mt-1">{holdOrderCount} order{holdOrderCount === 1 ? '' : 's'} disputed</div>
         </div>
       </div>
