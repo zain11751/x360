@@ -81,8 +81,8 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-gray-800">Reporting</h2>
         <div className="flex gap-2 text-sm">
-          <button onClick={() => setView('pnl')} className={`px-3 py-1 rounded ${view === 'pnl' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Monthly P&L</button>
-          <button onClick={() => setView('statement')} className={`px-3 py-1 rounded ${view === 'statement' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Store Statement</button>
+          <button onClick={() => setView('pnl')} className={`px-3 py-1 rounded ${view === 'pnl' ? 'bg-emerald-600 text-white' : 'bg-gray-100'}`}>Monthly P&L</button>
+          <button onClick={() => setView('statement')} className={`px-3 py-1 rounded ${view === 'statement' ? 'bg-emerald-600 text-white' : 'bg-gray-100'}`}>Store Statement</button>
         </div>
       </div>
 
@@ -129,7 +129,7 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
                   <td className="px-3 py-2">{label}</td>
                   {pnl.months.map(m => (
                     <td key={m.month} className="px-3 py-2 text-right">
-                      <button onClick={() => openDrill(m.month, key)} className="hover:underline hover:text-blue-600">
+                      <button onClick={() => openDrill(m.month, key)} className="hover:underline hover:text-emerald-600">
                         ${Number(m[key]).toFixed(2)}
                       </button>
                     </td>

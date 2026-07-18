@@ -56,7 +56,7 @@ export default function MarketOrders({ apiBase, authHeaders, stores, customOptio
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-gray-800">Market Orders</h2>
         {canEdit && (
-          <button onClick={openNew} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-semibold hover:bg-blue-700">
+          <button onClick={openNew} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700">
             <Plus size={16} /> New Order
           </button>
         )}
@@ -109,7 +109,7 @@ export default function MarketOrders({ apiBase, authHeaders, stores, customOptio
                 <td className="px-3 py-2">{o.order_tracker}</td>
                 <td className="px-3 py-2">{o.va_team}</td>
                 <td className="px-3 py-2">
-                  <button onClick={() => openEdit(o)} className="text-blue-600 hover:underline flex items-center gap-1"><Edit2 size={12} />Edit</button>
+                  <button onClick={() => openEdit(o)} className="text-emerald-600 hover:underline flex items-center gap-1"><Edit2 size={12} />Edit</button>
                 </td>
               </tr>
             ))}
@@ -214,7 +214,7 @@ export default function MarketOrders({ apiBase, authHeaders, stores, customOptio
 
               <div className="flex justify-end gap-2 border-t pt-3">
                 <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 border rounded text-sm">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold">Save</button>
+                <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded text-sm font-bold">Save</button>
               </div>
             </form>
           </div>

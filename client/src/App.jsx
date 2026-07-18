@@ -14,6 +14,7 @@ import IncomeTab from './IncomeTab.jsx';
 import ImportCenter from './ImportCenter.jsx';
 import ReportingTab from './ReportingTab.jsx';
 import ErrorBoundary from './ErrorBoundary.jsx';
+import logoMark from './logo-mark.png';
 
 const API_BASE = (import.meta.env.VITE_API_URL || '') + '/api';
 
@@ -431,11 +432,13 @@ export default function App() {
   // Login Screen Render
   if (!user) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full border border-gray-200">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-brand-navy via-brand-navyLight to-brand-navy p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
           <div className="text-center mb-6">
-            <h1 className="text-3xl font-extrabold text-blue-600 tracking-tight">x360 Ecom Finance App</h1>
-            <p className="text-gray-500 mt-2">Sign in to your account</p>
+            <img src={logoMark} alt="GTX360" className="h-16 w-auto mx-auto mb-3" />
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">GTX360</h1>
+            <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mt-0.5">E-Commerce Finance</p>
+            <p className="text-gray-500 mt-4 text-sm">Sign in to your account</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -447,7 +450,7 @@ export default function App() {
                 placeholder="e.g. admin@x360.com"
                 value={loginEmail}
                 onChange={e => setLoginEmail(e.target.value)}
-                className="w-full px-4 py-2 mt-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="w-full px-4 py-2 mt-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
               />
             </div>
 
@@ -459,7 +462,7 @@ export default function App() {
                 placeholder="••••••••"
                 value={loginPassword}
                 onChange={e => setLoginPassword(e.target.value)}
-                className="w-full px-4 py-2 mt-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="w-full px-4 py-2 mt-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
               />
             </div>
 
@@ -472,7 +475,7 @@ export default function App() {
 
             <button
               type="submit"
-              className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-md transition duration-150"
+              className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-md transition duration-150"
             >
               Sign In
             </button>
@@ -487,16 +490,17 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-slate-50">
 
       {/* TOP NAVIGATION BAR */}
-      <nav className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+      <nav className="bg-brand-navy border-b border-slate-700 shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
 
             {/* Logo */}
-            <div className="flex-shrink-0 flex items-center">
-              <span className="text-xl font-extrabold text-blue-600 tracking-tight">x360 Ecom Finance App</span>
+            <div className="flex-shrink-0 flex items-center gap-2.5">
+              <img src={logoMark} alt="GTX360" className="h-9 w-auto" />
+              <span className="text-lg font-extrabold text-white tracking-tight">GTX360</span>
             </div>
 
             {/* SHARED BUSINESS -> STORE SELECTOR (Cascading) */}
@@ -505,7 +509,7 @@ export default function App() {
               <div className="relative">
                 <button
                   onClick={() => { setStoreBusOpen(!busSelectorOpen); setStoreSelectorOpen(false); }}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded border border-gray-300 text-sm font-medium"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded border border-slate-600 text-sm font-medium"
                 >
                   <Building size={16} />
                   <span>
@@ -520,7 +524,7 @@ export default function App() {
                   <div className="absolute left-0 mt-1 w-64 bg-white border border-gray-200 rounded shadow-lg z-50 max-h-60 overflow-y-auto">
                     <button
                       onClick={() => { handleBusinessChange('all'); setStoreBusOpen(false); }}
-                      className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm text-gray-700 border-b border-gray-100 font-semibold"
+                      className="w-full text-left px-4 py-2 hover:bg-emerald-50 text-sm text-gray-700 border-b border-gray-100 font-semibold"
                     >
                       All Businesses
                     </button>
@@ -528,7 +532,7 @@ export default function App() {
                       <button
                         key={b.id}
                         onClick={() => { handleBusinessChange(b.id); setStoreBusOpen(false); }}
-                        className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm text-gray-700 block"
+                        className="w-full text-left px-4 py-2 hover:bg-emerald-50 text-sm text-gray-700 block"
                       >
                         {b.name}
                       </button>
@@ -541,7 +545,7 @@ export default function App() {
               <div className="relative">
                 <button
                   onClick={() => { setStoreSelectorOpen(!storeSelectorOpen); setStoreBusOpen(false); }}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded border border-gray-300 text-sm font-medium"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded border border-slate-600 text-sm font-medium"
                 >
                   <Store size={16} />
                   <span>
@@ -560,7 +564,7 @@ export default function App() {
                       <span className="text-xs text-gray-400 font-semibold uppercase">Filter Stores</span>
                       <button
                         onClick={handleSelectAllStores}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-bold"
+                        className="text-xs text-emerald-600 hover:text-emerald-800 font-bold"
                       >
                         {selectedStoreIds.length === getFilteredStores().length ? 'Deselect All' : 'Select All'}
                       </button>
@@ -581,7 +585,7 @@ export default function App() {
                               type="checkbox"
                               checked={isChecked}
                               onChange={() => handleStoreToggle(s.id)}
-                              className="rounded text-blue-600 focus:ring-blue-500"
+                              className="rounded text-emerald-600 focus:ring-emerald-500"
                             />
                             <span>{s.name} <span className="text-xs text-gray-400">({s.platform})</span></span>
                           </label>
@@ -596,12 +600,12 @@ export default function App() {
             {/* Profile & Logout */}
             <div className="flex items-center gap-4">
               <div className="text-right hidden sm:block">
-                <div className="text-sm font-bold text-gray-800">{user.full_name}</div>
-                <div className="text-xs text-blue-600 font-semibold uppercase tracking-wider">{user.role}</div>
+                <div className="text-sm font-bold text-white">{user.full_name}</div>
+                <div className="text-xs text-emerald-400 font-semibold uppercase tracking-wider">{user.role}</div>
               </div>
               <button
                 onClick={handleLogout}
-                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition"
+                className="p-2 text-slate-300 hover:text-red-400 hover:bg-slate-800 rounded-full transition"
                 title="Log Out"
               >
                 <LogOut size={20} />
@@ -617,7 +621,7 @@ export default function App() {
 
         {/* SIDEBAR NAVIGATION */}
         <aside className="w-64 flex-shrink-0 hidden lg:block">
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 space-y-1">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-card p-4 space-y-1">
             <div className="px-3 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
               Navigation
             </div>
@@ -626,7 +630,7 @@ export default function App() {
               <>
                 <button
                   onClick={() => setActiveTab('dashboard')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'dashboard' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'dashboard' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                   <LayoutDashboard size={18} />
                   <span>Dashboard</span>
@@ -639,7 +643,7 @@ export default function App() {
               <>
                 <button
                   onClick={() => setActiveTab('users')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'users' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'users' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                   <Users size={18} />
                   <span>Users & Permissions</span>
@@ -647,7 +651,7 @@ export default function App() {
 
                 <button
                   onClick={() => setActiveTab('access_review')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'access_review' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'access_review' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                   <ShieldAlert size={18} />
                   <span>Access Review</span>
@@ -655,7 +659,7 @@ export default function App() {
 
                 <button
                   onClick={() => setActiveTab('custom_fields')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'custom_fields' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'custom_fields' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                   <Settings size={18} />
                   <span>Custom Field Options</span>
@@ -663,7 +667,7 @@ export default function App() {
 
                 <button
                   onClick={() => setActiveTab('businesses_stores')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'businesses_stores' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'businesses_stores' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                   <Building size={18} />
                   <span>Businesses & Stores</span>
@@ -675,32 +679,32 @@ export default function App() {
 
             {(user.role === 'admin' || user.role === 'bookkeeper') && (
               <>
-                <button onClick={() => setActiveTab('market_orders')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'market_orders' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                <button onClick={() => setActiveTab('market_orders')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'market_orders' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
                   <ShoppingCart size={18} /><span>Market Orders</span>
                 </button>
-                <button onClick={() => setActiveTab('supplier_orders')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'supplier_orders' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                <button onClick={() => setActiveTab('supplier_orders')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'supplier_orders' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
                   <Package size={18} /><span>Supplier Orders</span>
                 </button>
-                <button onClick={() => setActiveTab('order_matching')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'order_matching' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                <button onClick={() => setActiveTab('order_matching')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'order_matching' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
                   <LinkIcon size={18} /><span>Order Matching</span>
                 </button>
-                <button onClick={() => setActiveTab('transactions')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'transactions' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                <button onClick={() => setActiveTab('transactions')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'transactions' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
                   <DollarSign size={18} /><span>Transactions</span>
                 </button>
-                <button onClick={() => setActiveTab('expense')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'expense' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                <button onClick={() => setActiveTab('expense')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'expense' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
                   <TrendingDown size={18} /><span>Expense</span>
                 </button>
-                <button onClick={() => setActiveTab('income')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'income' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                <button onClick={() => setActiveTab('income')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'income' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
                   <TrendingUp size={18} /><span>Income</span>
                 </button>
-                <button onClick={() => setActiveTab('import_center')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'import_center' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                <button onClick={() => setActiveTab('import_center')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'import_center' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
                   <Upload size={18} /><span>Import Center</span>
                 </button>
                 <div className="pt-2 mt-2 border-t border-gray-100" />
               </>
             )}
 
-            <button onClick={() => setActiveTab('reporting')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'reporting' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+            <button onClick={() => setActiveTab('reporting')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition ${activeTab === 'reporting' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
               <BarChart2 size={18} /><span>Reporting</span>
             </button>
           </div>
@@ -720,7 +724,7 @@ export default function App() {
                 </div>
                 <button
                   onClick={openAddUserModal}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded shadow transition"
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded shadow transition"
                 >
                   <Plus size={16} />
                   <span>Create User</span>
@@ -757,7 +761,7 @@ export default function App() {
                         </td>
                         <td className="p-3">
                           <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold capitalize ${
-                            u.status === 'active' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-400'
+                            u.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'
                           }`}>
                             {u.status}
                           </span>
@@ -765,7 +769,7 @@ export default function App() {
                         <td className="p-3 text-right space-x-2">
                           <button
                             onClick={() => openEditUserModal(u)}
-                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                            className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded"
                             title="Edit"
                           >
                             <Edit2 size={16} />
@@ -803,7 +807,7 @@ export default function App() {
                         <div className="text-xs font-mono text-gray-400 mt-0.5">Auth Identity ID: {u.auth_user_id}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-xs font-bold uppercase">{u.role}</span>
+                        <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-xs font-bold uppercase">{u.role}</span>
                         <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${u.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'}`}>{u.status}</span>
                       </div>
                     </div>
@@ -816,7 +820,7 @@ export default function App() {
                           <div>
                             <span className="text-xs font-bold text-gray-500 block mb-1">Businesses Allowed:</span>
                             {u.role === 'admin' ? (
-                              <span className="text-sm text-blue-700 font-medium">Full Access (All Businesses)</span>
+                              <span className="text-sm text-emerald-700 font-medium">Full Access (All Businesses)</span>
                             ) : u.access?.businesses?.length === 0 ? (
                               <span className="text-sm text-gray-400">No explicit business access mapped</span>
                             ) : (
@@ -833,7 +837,7 @@ export default function App() {
                           <div className="pt-2">
                             <span className="text-xs font-bold text-gray-500 block mb-1">Stores Allowed:</span>
                             {u.role === 'admin' ? (
-                              <span className="text-sm text-blue-700 font-medium">Full Access (All Stores)</span>
+                              <span className="text-sm text-emerald-700 font-medium">Full Access (All Stores)</span>
                             ) : u.access?.stores?.length === 0 && u.access?.businesses?.length === 0 ? (
                               <span className="text-sm text-gray-400">No stores mapped</span>
                             ) : (
@@ -846,7 +850,7 @@ export default function App() {
                                 {u.access?.businesses?.map(b => {
                                   const storesInBus = stores.filter(st => st.business_id === b.business_id);
                                   return storesInBus.map(st => (
-                                    <span key={st.id} className="inline-flex px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded border border-blue-100">
+                                    <span key={st.id} className="inline-flex px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded border border-blue-100">
                                       {st.name} (via Business Access)
                                     </span>
                                   ));
@@ -861,7 +865,7 @@ export default function App() {
                       <div>
                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Module Permissions Matrix</h4>
                         {u.role === 'admin' ? (
-                          <div className="text-sm text-blue-700 font-medium">Bypasses checks: full administrative reads/writes to all modules</div>
+                          <div className="text-sm text-emerald-700 font-medium">Bypasses checks: full administrative reads/writes to all modules</div>
                         ) : (
                           <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                             {u.permissions?.map(p => (
@@ -869,7 +873,7 @@ export default function App() {
                                 <span className="font-semibold text-gray-600 capitalize">{p.module_name.replace('_', ' ')}</span>
                                 <div className="flex gap-2">
                                   <span className={p.can_view ? 'text-green-600' : 'text-gray-300'}>View</span>
-                                  <span className={p.can_edit ? 'text-blue-600 font-bold' : 'text-gray-300'}>Edit</span>
+                                  <span className={p.can_edit ? 'text-emerald-600 font-bold' : 'text-gray-300'}>Edit</span>
                                 </div>
                               </div>
                             ))}
@@ -905,7 +909,7 @@ export default function App() {
                     <button
                       key={cat.key}
                       onClick={() => { setActiveFieldKey(cat.key); setEditingOptionId(null); }}
-                      className={`w-full text-left px-3 py-2 rounded text-sm font-medium transition ${activeFieldKey === cat.key ? 'bg-blue-600 text-white font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
+                      className={`w-full text-left px-3 py-2 rounded text-sm font-medium transition ${activeFieldKey === cat.key ? 'bg-emerald-600 text-white font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
                     >
                       {cat.label}
                     </button>
@@ -925,7 +929,7 @@ export default function App() {
                         placeholder="e.g. In Progress"
                         value={optForm.option_label}
                         onChange={e => setOptForm({...optForm, option_label: e.target.value})}
-                        className="w-full px-3 py-1.5 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                        className="w-full px-3 py-1.5 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
                       />
                     </div>
 
@@ -936,7 +940,7 @@ export default function App() {
                         required
                         value={optForm.sort_order}
                         onChange={e => setOptForm({...optForm, sort_order: e.target.value})}
-                        className="w-full px-3 py-1.5 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                        className="w-full px-3 py-1.5 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
                       />
                     </div>
 
@@ -946,7 +950,7 @@ export default function App() {
                           type="checkbox"
                           checked={optForm.excludes_from_calculations}
                           onChange={e => setOptForm({...optForm, excludes_from_calculations: e.target.checked})}
-                          className="rounded text-blue-600 focus:ring-blue-500"
+                          className="rounded text-emerald-600 focus:ring-emerald-500"
                         />
                         <span className="text-xs font-semibold text-gray-600">Exclude from P&L</span>
                       </label>
@@ -955,7 +959,7 @@ export default function App() {
                     <div className="flex gap-2">
                       <button
                         type="submit"
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded shadow"
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded shadow"
                       >
                         {editingOptionId ? 'Save' : 'Add'}
                       </button>
@@ -1004,7 +1008,7 @@ export default function App() {
                               )}
                               <td className="p-3">
                                 {o.is_active ? (
-                                  <span className="text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded">Active</span>
+                                  <span className="text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded">Active</span>
                                 ) : (
                                   <span className="text-xs text-gray-400 font-semibold bg-gray-100 px-2 py-0.5 rounded">Inactive</span>
                                 )}
@@ -1019,7 +1023,7 @@ export default function App() {
                                       sort_order: o.sort_order
                                     });
                                   }}
-                                  className="p-1 hover:text-blue-600 rounded text-gray-400"
+                                  className="p-1 hover:text-emerald-600 rounded text-gray-400"
                                   title="Edit"
                                 >
                                   <Edit2 size={14} />
@@ -1036,7 +1040,7 @@ export default function App() {
                                 ) : (
                                   <button
                                     onClick={() => handleDeactivateOption(o, true)}
-                                    className="p-1 text-gray-400 hover:text-blue-600 rounded"
+                                    className="p-1 text-gray-400 hover:text-emerald-600 rounded"
                                     title="Activate"
                                   >
                                     <Eye size={14} />
@@ -1089,10 +1093,10 @@ export default function App() {
                         placeholder="e.g. Acme Dropshipping LLC"
                         value={businessForm.name}
                         onChange={e => setBusinessForm({ name: e.target.value })}
-                        className="w-full px-3 py-1.5 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                        className="w-full px-3 py-1.5 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
                       />
                     </div>
-                    <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded shadow flex items-center gap-1">
+                    <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded shadow flex items-center gap-1">
                       <Plus size={14} /> Add Business
                     </button>
                   </form>
@@ -1110,7 +1114,7 @@ export default function App() {
                           <tr key={b.id}>
                             <td className="p-3 font-medium flex items-center gap-2"><Building size={14} className="text-gray-400" />{b.name}</td>
                             <td className="p-3">
-                              <span className="text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded">Active</span>
+                              <span className="text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded">Active</span>
                             </td>
                           </tr>
                         ))}
@@ -1134,7 +1138,7 @@ export default function App() {
                         placeholder="e.g. Main eBay Store"
                         value={storeForm.name}
                         onChange={e => setStoreForm({...storeForm, name: e.target.value})}
-                        className="w-full px-3 py-1.5 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                        className="w-full px-3 py-1.5 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
                       />
                     </div>
                     <div className="min-w-[160px]">
@@ -1143,7 +1147,7 @@ export default function App() {
                         required
                         value={storeForm.business_id}
                         onChange={e => setStoreForm({...storeForm, business_id: e.target.value})}
-                        className="w-full px-3 py-1.5 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                        className="w-full px-3 py-1.5 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
                       >
                         <option value="">Select business...</option>
                         {businesses.map(b => (
@@ -1156,13 +1160,13 @@ export default function App() {
                       <select
                         value={storeForm.platform}
                         onChange={e => setStoreForm({...storeForm, platform: e.target.value})}
-                        className="w-full px-3 py-1.5 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                        className="w-full px-3 py-1.5 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
                       >
                         <option value="ebay">eBay</option>
                         <option value="other">Other</option>
                       </select>
                     </div>
-                    <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded shadow flex items-center gap-1">
+                    <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded shadow flex items-center gap-1">
                       <Plus size={14} /> Add Store
                     </button>
                   </form>
@@ -1261,7 +1265,7 @@ export default function App() {
                     required
                     value={userForm.full_name}
                     onChange={e => setUserForm({...userForm, full_name: e.target.value})}
-                    className="w-full px-3 py-2 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                    className="w-full px-3 py-2 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
                   />
                 </div>
                 <div>
@@ -1272,11 +1276,11 @@ export default function App() {
                     disabled={!!editingUser}
                     value={userForm.email}
                     onChange={e => setUserForm({...userForm, email: e.target.value})}
-                    className="w-full px-3 py-2 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-gray-100"
+                    className="w-full px-3 py-2 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white disabled:bg-gray-100"
                   />
                 </div>
                 {!editingUser && (
-                  <div className="md:col-span-2 border border-blue-100 bg-blue-50 rounded p-3 space-y-3">
+                  <div className="md:col-span-2 border border-blue-100 bg-emerald-50 rounded p-3 space-y-3">
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase">Password</label>
                       <input
@@ -1284,7 +1288,7 @@ export default function App() {
                         placeholder="Set a login password for this user"
                         value={userForm.password}
                         onChange={e => setUserForm({...userForm, password: e.target.value, auth_user_id: ''})}
-                        className="w-full px-3 py-2 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                        className="w-full px-3 py-2 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
                       />
                       <p className="text-xs text-gray-500 mt-1">Creates their managed login automatically — this password is sent straight to Supabase and never stored by this app.</p>
                     </div>
@@ -1295,7 +1299,7 @@ export default function App() {
                         placeholder="e.g. auth-uid-123 (if the login already exists in Supabase)"
                         value={userForm.auth_user_id}
                         onChange={e => setUserForm({...userForm, auth_user_id: e.target.value, password: ''})}
-                        className="w-full px-3 py-2 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                        className="w-full px-3 py-2 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
                       />
                     </div>
                   </div>
@@ -1316,7 +1320,7 @@ export default function App() {
                   <select
                     value={userForm.role}
                     onChange={e => setUserForm({...userForm, role: e.target.value})}
-                    className="w-full px-3 py-2 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                    className="w-full px-3 py-2 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
                   >
                     <option value="admin">Admin</option>
                     <option value="bookkeeper">Bookkeeper</option>
@@ -1328,7 +1332,7 @@ export default function App() {
                   <select
                     value={userForm.status}
                     onChange={e => setUserForm({...userForm, status: e.target.value})}
-                    className="w-full px-3 py-2 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                    className="w-full px-3 py-2 mt-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
                   >
                     <option value="active">Active</option>
                     <option value="disabled">Disabled</option>
@@ -1358,7 +1362,7 @@ export default function App() {
                                       : userForm.access.businesses.filter(x => x.business_id !== b.id);
                                     setUserForm({...userForm, access: { ...userForm.access, businesses: updated }});
                                   }}
-                                  className="rounded text-blue-600 focus:ring-blue-500"
+                                  className="rounded text-emerald-600 focus:ring-emerald-500"
                                 />
                                 <span>{b.name}</span>
                               </label>
@@ -1398,7 +1402,7 @@ export default function App() {
                                       : userForm.access.stores.filter(x => x.store_id !== s.id);
                                     setUserForm({...userForm, access: { ...userForm.access, stores: updated }});
                                   }}
-                                  className="rounded text-blue-600 focus:ring-blue-500"
+                                  className="rounded text-emerald-600 focus:ring-emerald-500"
                                 />
                                 <span>{s.name}</span>
                               </label>
@@ -1442,7 +1446,7 @@ export default function App() {
                                 if (!e.target.checked) copy[index].can_edit = false;
                                 setUserForm({...userForm, permissions: copy});
                               }}
-                              className="rounded text-blue-600 focus:ring-blue-500"
+                              className="rounded text-emerald-600 focus:ring-emerald-500"
                             />
                             <span>View</span>
                           </label>
@@ -1457,7 +1461,7 @@ export default function App() {
                                 copy[index].can_edit = e.target.checked;
                                 setUserForm({...userForm, permissions: copy});
                               }}
-                              className="rounded text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                              className="rounded text-emerald-600 focus:ring-emerald-500 disabled:opacity-50"
                             />
                             <span>Edit</span>
                           </label>
@@ -1478,7 +1482,7 @@ export default function App() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded text-sm shadow"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-sm shadow"
                 >
                   {editingUser ? 'Save Changes' : 'Create User'}
                 </button>

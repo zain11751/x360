@@ -133,35 +133,35 @@ export default function Dashboard({ apiBase, authHeaders, onGoToReporting, onGoT
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+        <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-card hover:shadow-cardHover transition-shadow">
           <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase mb-2">
             <DollarSign size={14} /> Gross Revenue
           </div>
-          <div className="text-2xl font-bold text-gray-900">{fmtMoney(t.gross_revenue)}</div>
+          <div className="text-3xl font-bold text-gray-900 font-mono tracking-tight">{fmtMoney(t.gross_revenue)}</div>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+        <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-card hover:shadow-cardHover transition-shadow">
           <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase mb-2">
             <TrendingUp size={14} /> Adjusted Net Profit
           </div>
-          <div className={`text-2xl font-bold ${t.adjusted_net_profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{fmtMoney(t.adjusted_net_profit)}</div>
+          <div className={`text-3xl font-bold font-mono tracking-tight ${t.adjusted_net_profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{fmtMoney(t.adjusted_net_profit)}</div>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+        <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-card hover:shadow-cardHover transition-shadow">
           <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase mb-2">
             <TrendingDown size={14} /> Other Expenses
           </div>
-          <div className="text-2xl font-bold text-gray-900">{fmtMoney(t.other_expenses)}</div>
+          <div className="text-3xl font-bold text-gray-900 font-mono tracking-tight">{fmtMoney(t.other_expenses)}</div>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+        <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-card hover:shadow-cardHover transition-shadow">
           <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase mb-2">
             <ShoppingCart size={14} /> Total Orders
           </div>
-          <div className="text-2xl font-bold text-gray-900">{t.total_orders}</div>
+          <div className="text-3xl font-bold text-gray-900 font-mono tracking-tight">{t.total_orders}</div>
         </div>
         <div className="bg-white border border-amber-200 rounded-lg p-4 shadow-sm">
           <div className="flex items-center gap-2 text-amber-500 text-xs font-bold uppercase mb-2">
             <AlertTriangle size={14} /> Amount on Hold (Disputed)
           </div>
-          <div className="text-2xl font-bold text-amber-700">{fmtMoney(holdAmount)}</div>
+          <div className="text-3xl font-bold font-mono tracking-tight text-amber-700">{fmtMoney(holdAmount)}</div>
           <div className="text-xs text-gray-400 mt-1">{holdOrderCount} order{holdOrderCount === 1 ? '' : 's'} disputed</div>
         </div>
       </div>
@@ -178,7 +178,7 @@ export default function Dashboard({ apiBase, authHeaders, onGoToReporting, onGoT
       )}
 
       {/* Trend chart */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+      <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-card hover:shadow-cardHover transition-shadow">
         <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3">Last 12 Months — Revenue vs Profit vs Expenses</h3>
         {trend.length === 0 ? (
           <div className="text-center text-gray-400 py-8 text-sm">No data yet for the last 12 months.</div>
@@ -288,7 +288,7 @@ export default function Dashboard({ apiBase, authHeaders, onGoToReporting, onGoT
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Per-store breakdown */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+        <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-card hover:shadow-cardHover transition-shadow">
           <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3">Per-Store Breakdown ({new Date().getFullYear()})</h3>
           <div className="space-y-2">
             {stores.length === 0 && <div className="text-gray-400 text-sm text-center py-6">No stores yet.</div>}
@@ -315,7 +315,7 @@ export default function Dashboard({ apiBase, authHeaders, onGoToReporting, onGoT
 
         {/* Top-selling items + Recent imports */}
         <div className="space-y-6">
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+          <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-card hover:shadow-cardHover transition-shadow">
             <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3">Top-Selling Items ({new Date().getFullYear()})</h3>
             {topItems.length === 0 ? (
               <div className="text-gray-400 text-sm text-center py-4">No orders yet this year.</div>
@@ -332,7 +332,7 @@ export default function Dashboard({ apiBase, authHeaders, onGoToReporting, onGoT
             )}
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+          <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-card hover:shadow-cardHover transition-shadow">
             <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
               <Upload size={14} /> Recent Imports
             </h3>

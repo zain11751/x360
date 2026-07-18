@@ -130,8 +130,8 @@ export default function ImportCenter({ apiBase, authHeaders, stores }) {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-gray-800">Import Center</h2>
         <div className="flex gap-2 text-sm">
-          <button onClick={() => setView('import')} className={`px-3 py-1 rounded ${view === 'import' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>New Import</button>
-          <button onClick={() => setView('logs')} className={`px-3 py-1 rounded ${view === 'logs' || view === 'detail' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Import Logs</button>
+          <button onClick={() => setView('import')} className={`px-3 py-1 rounded ${view === 'import' ? 'bg-emerald-600 text-white' : 'bg-gray-100'}`}>New Import</button>
+          <button onClick={() => setView('logs')} className={`px-3 py-1 rounded ${view === 'logs' || view === 'detail' ? 'bg-emerald-600 text-white' : 'bg-gray-100'}`}>Import Logs</button>
         </div>
       </div>
 
@@ -140,7 +140,7 @@ export default function ImportCenter({ apiBase, authHeaders, stores }) {
           {result && (
             <div className="border border-green-300 bg-green-50 rounded p-3 text-sm">
               Import complete: {result.success_rows} succeeded, {result.failed_rows} failed, {result.skipped_rows} skipped duplicates. Status: {result.status}.
-              <button onClick={() => openLogDetail(result.import_log_id)} className="ml-2 text-blue-600 hover:underline">View Detail</button>
+              <button onClick={() => openLogDetail(result.import_log_id)} className="ml-2 text-emerald-600 hover:underline">View Detail</button>
             </div>
           )}
 
@@ -227,7 +227,7 @@ export default function ImportCenter({ apiBase, authHeaders, stores }) {
                 </table>
               </div>
 
-              <button onClick={doCommit} disabled={committing} className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold disabled:opacity-50">
+              <button onClick={doCommit} disabled={committing} className="px-4 py-2 bg-emerald-600 text-white rounded text-sm font-bold disabled:opacity-50">
                 {committing ? 'Importing...' : 'Confirm Import'}
               </button>
             </div>
@@ -250,7 +250,7 @@ export default function ImportCenter({ apiBase, authHeaders, stores }) {
                   <td className="px-3 py-2">{l.skipped_rows}</td>
                   <td className="px-3 py-2">{l.status}</td>
                   <td className="px-3 py-2">{new Date(l.started_at).toLocaleString()}</td>
-                  <td className="px-3 py-2"><button onClick={() => openLogDetail(l.id)} className="text-blue-600 hover:underline">Detail</button></td>
+                  <td className="px-3 py-2"><button onClick={() => openLogDetail(l.id)} className="text-emerald-600 hover:underline">Detail</button></td>
                 </tr>
               ))}
               {logs.length === 0 && <tr><td colSpan={9} className="px-3 py-6 text-center text-gray-400">No import logs found.</td></tr>}
@@ -261,11 +261,11 @@ export default function ImportCenter({ apiBase, authHeaders, stores }) {
 
       {view === 'detail' && logDetail && (
         <div className="space-y-4">
-          <button onClick={() => setView('logs')} className="text-sm text-blue-600 hover:underline">&larr; Back to Logs</button>
+          <button onClick={() => setView('logs')} className="text-sm text-emerald-600 hover:underline">&larr; Back to Logs</button>
           <div className="text-sm bg-gray-50 border rounded p-3">
             <b>{logDetail.log.file_name}</b> — {logDetail.log.import_type} — {logDetail.log.status} — {logDetail.log.success_rows} success / {logDetail.log.failed_rows} failed / {logDetail.log.skipped_rows} skipped
             {logDetail.log.failed_rows > 0 && (
-              <button onClick={() => exportFailed(logDetail.log.id)} className="ml-3 text-blue-600 hover:underline flex items-center gap-1 inline-flex"><Download size={12}/>Export Failed Rows</button>
+              <button onClick={() => exportFailed(logDetail.log.id)} className="ml-3 text-emerald-600 hover:underline flex items-center gap-1 inline-flex"><Download size={12}/>Export Failed Rows</button>
             )}
           </div>
 
@@ -282,7 +282,7 @@ export default function ImportCenter({ apiBase, authHeaders, stores }) {
               {logDetail.rows.filter(r => r.row_status === 'failed').map(r => (
                 <div key={r.id} className="border border-red-200 bg-red-50 rounded p-2 text-xs">
                   <div><b>Row {r.row_number}:</b> {r.error_reason}</div>
-                  <button onClick={() => { setRetryRow(r); setRetryForm(typeof r.raw_row_data === 'string' ? JSON.parse(r.raw_row_data) : r.raw_row_data); }} className="text-blue-600 hover:underline mt-1"><RefreshCw size={10} className="inline mr-1"/>Fix & Retry</button>
+                  <button onClick={() => { setRetryRow(r); setRetryForm(typeof r.raw_row_data === 'string' ? JSON.parse(r.raw_row_data) : r.raw_row_data); }} className="text-emerald-600 hover:underline mt-1"><RefreshCw size={10} className="inline mr-1"/>Fix & Retry</button>
                 </div>
               ))}
               {logDetail.rows.filter(r => r.row_status === 'failed').length === 0 && <div className="text-gray-400 text-xs">No failed rows.</div>}
@@ -307,7 +307,7 @@ export default function ImportCenter({ apiBase, authHeaders, stores }) {
               ))}
               <div className="flex justify-end gap-2 border-t pt-3">
                 <button type="button" onClick={() => setRetryRow(null)} className="px-4 py-2 border rounded text-sm">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold">Retry</button>
+                <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded text-sm font-bold">Retry</button>
               </div>
             </form>
           </div>

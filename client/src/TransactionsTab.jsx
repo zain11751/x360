@@ -29,8 +29,8 @@ export default function TransactionsTab({ apiBase, authHeaders, stores }) {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-gray-800">Transactions</h2>
         <div className="flex gap-2 text-sm">
-          <button onClick={() => setView('list')} className={`px-3 py-1 rounded ${view === 'list' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>List</button>
-          <button onClick={() => setView('payouts')} className={`px-3 py-1 rounded ${view === 'payouts' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Payout View</button>
+          <button onClick={() => setView('list')} className={`px-3 py-1 rounded ${view === 'list' ? 'bg-emerald-600 text-white' : 'bg-gray-100'}`}>List</button>
+          <button onClick={() => setView('payouts')} className={`px-3 py-1 rounded ${view === 'payouts' ? 'bg-emerald-600 text-white' : 'bg-gray-100'}`}>Payout View</button>
         </div>
       </div>
 

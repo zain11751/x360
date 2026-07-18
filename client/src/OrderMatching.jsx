@@ -108,10 +108,10 @@ export default function OrderMatching({ apiBase, authHeaders, stores, canEdit })
               {canEdit && (
                 <div className="flex gap-2">
                   {m.match_status === 'unmatched_market' && (
-                    <button onClick={() => setLinkModal({ matchId: m.id, mode: 'link_supplier' })} className="text-blue-600 hover:underline flex items-center gap-1"><LinkIcon size={12}/>Link Supplier Order</button>
+                    <button onClick={() => setLinkModal({ matchId: m.id, mode: 'link_supplier' })} className="text-emerald-600 hover:underline flex items-center gap-1"><LinkIcon size={12}/>Link Supplier Order</button>
                   )}
                   {m.match_status === 'unmatched_supplier' && (
-                    <button onClick={() => setLinkModal({ matchId: m.id, mode: 'link_market' })} className="text-blue-600 hover:underline flex items-center gap-1"><LinkIcon size={12}/>Link Market Order</button>
+                    <button onClick={() => setLinkModal({ matchId: m.id, mode: 'link_market' })} className="text-emerald-600 hover:underline flex items-center gap-1"><LinkIcon size={12}/>Link Market Order</button>
                   )}
                   {m.match_status === 'matched' && m.source === 'manual' && (
                     <>
@@ -124,8 +124,8 @@ export default function OrderMatching({ apiBase, authHeaders, stores, canEdit })
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-blue-50 rounded p-2">
-                <div className="font-bold text-blue-800 mb-1">Market Order</div>
+              <div className="bg-emerald-50 rounded p-2">
+                <div className="font-bold text-emerald-800 mb-1">Market Order</div>
                 {m.market_order_id ? (
                   <div>
                     <div>ID: {m.mo_market_order_id}</div>
@@ -154,13 +154,13 @@ export default function OrderMatching({ apiBase, authHeaders, stores, canEdit })
                 {editingKeyId === m.id ? (
                   <>
                     <input value={keyDraft} onChange={e => setKeyDraft(e.target.value)} className="border rounded px-2 py-1 text-xs" />
-                    <button onClick={() => saveParsedKey(m.id)} className="text-blue-600 hover:underline">Save</button>
+                    <button onClick={() => saveParsedKey(m.id)} className="text-emerald-600 hover:underline">Save</button>
                     <button onClick={() => setEditingKeyId(null)} className="text-gray-500 hover:underline">Cancel</button>
                   </>
                 ) : (
                   <>
                     <span className="font-mono">{m.parsed_match_key}</span>
-                    {canEdit && <button onClick={() => { setEditingKeyId(m.id); setKeyDraft(m.parsed_match_key || ''); }} className="text-blue-600 hover:underline">Edit</button>}
+                    {canEdit && <button onClick={() => { setEditingKeyId(m.id); setKeyDraft(m.parsed_match_key || ''); }} className="text-emerald-600 hover:underline">Edit</button>}
                   </>
                 )}
               </div>
@@ -185,7 +185,7 @@ export default function OrderMatching({ apiBase, authHeaders, stores, canEdit })
               {searchResults.map(r => (
                 <div key={r.id} className="flex items-center justify-between border rounded px-2 py-1.5 text-xs">
                   <span>{linkModal.mode === 'link_supplier' ? r.supplier_order_id : r.market_order_id} — {r.item_title}</span>
-                  <button onClick={() => confirmLink(r.id)} className="text-blue-600 hover:underline">Select</button>
+                  <button onClick={() => confirmLink(r.id)} className="text-emerald-600 hover:underline">Select</button>
                 </div>
               ))}
             </div>
