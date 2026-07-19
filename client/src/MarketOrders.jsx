@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Edit2 } from 'lucide-react';
+import { Plus, X, Edit2, AlertTriangle } from 'lucide-react';
 
-export default function MarketOrders({ apiBase, authHeaders, stores, customOptions, canEdit }) {
+export default function MarketOrders({ apiBase, authHeaders, stores, customOptions, canEdit, onGoToOrderMatching }) {
   const [orders, setOrders] = useState([]);
   const [filters, setFilters] = useState({ store_id: '', date_from: '', date_to: '', order_status: '', dispute_status: '', order_tracker: '', va_team: '', review_status: '' });
   const [editing, setEditing] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(false);
+  const [cogsPopoverId, setCogsPopoverId] = useState(null);
 
   const opts = (key) => customOptions.filter(o => o.field_key === key && o.is_active);
 
@@ -90,7 +91,7 @@ export default function MarketOrders({ apiBase, authHeaders, stores, customOptio
         <table className="min-w-full text-xs">
           <thead className="bg-gray-50">
             <tr>
-              {['Order Date', 'Market Order ID', 'Item', 'Buyer', 'Gross', 'Net Earnings', 'Status', 'Dispute', 'Tracker', 'VA Team', ''].map(h => (
+              {['', 'Order Date', 'Market Order ID', 'Item', 'Buyer', 'Gross', 'Net Earnings', 'Status', 'Dispute', 'Tracker', 'VA Team', ''].map(h => (
                 <th key={h} className="px-3 py-2 text-left font-bold text-gray-500 uppercase">{h}</th>
               ))}
             </tr>
@@ -98,6 +99,27 @@ export default function MarketOrders({ apiBase, authHeaders, stores, customOptio
           <tbody className="divide-y divide-gray-100">
             {orders.map(o => (
               <tr key={o.id} className="hover:bg-gray-50">
+                <td className="px-2 py-2 relative">
+                  {!o.has_cogs && (
+                    <>
+                      <button onClick={() => setCogsPopoverId(cogsPopoverId === o.id ? null : o.id)} title="COGS missing" className="text-amber-500 hover:text-amber-600">
+                        <AlertTriangle size={15} />
+                      </button>
+                      {cogsPopoverId === o.id && (
+                        <div className="absolute z-20 top-6 left-0 bg-white border border-amber-200 shadow-lg rounded p-3 w-56 text-xs space-y-2">
+                          <div className="text-amber-700 font-semibold">COGS missing</div>
+                          <div className="text-gray-500">This order has no matched supplier order — its cost isn't counted in profit calculations.</div>
+                          <button
+                            onClick={() => { setCogsPopoverId(null); onGoToOrderMatching && onGoToOrderMatching(o.market_order_id); }}
+                            className="text-emerald-600 hover:underline font-semibold"
+                          >
+                            View in Order Matching →
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </td>
                 <td className="px-3 py-2">{o.order_date}</td>
                 <td className="px-3 py-2 font-mono">{o.market_order_id}</td>
                 <td className="px-3 py-2 max-w-[160px] truncate">{o.item_title}</td>
@@ -114,7 +136,7 @@ export default function MarketOrders({ apiBase, authHeaders, stores, customOptio
               </tr>
             ))}
             {orders.length === 0 && !loading && (
-              <tr><td colSpan={11} className="px-3 py-6 text-center text-gray-400">No market orders found.</td></tr>
+              <tr><td colSpan={12} className="px-3 py-6 text-center text-gray-400">No market orders found.</td></tr>
             )}
           </tbody>
         </table>

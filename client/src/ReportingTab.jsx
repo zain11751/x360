@@ -1,22 +1,25 @@
 import React, { useState, useEffect } from 'react';
+import { AlertTriangle } from 'lucide-react';
 
-export default function ReportingTab({ apiBase, authHeaders, stores, selectedStoreIds, selectedBusinessId }) {
+export default function ReportingTab({ apiBase, authHeaders, stores, selectedStoreIds, selectedBusinessId, onGoToOrderMatching }) {
   const [view, setView] = useState('pnl');
   const [year, setYear] = useState(new Date().getFullYear());
   const [storeId, setStoreId] = useState('');
   const [includeDisputed, setIncludeDisputed] = useState(false);
+  const [excludeMissingCogs, setExcludeMissingCogs] = useState(false);
   const [pnl, setPnl] = useState(null);
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [statement, setStatement] = useState(null);
   const [drillDown, setDrillDown] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [cogsPopoverKey, setCogsPopoverKey] = useState(null);
 
   const loadPnl = async () => {
     setError('');
     setLoading(true);
     try {
-      const params = new URLSearchParams({ year, include_disputed: includeDisputed });
+      const params = new URLSearchParams({ year, include_disputed: includeDisputed, exclude_missing_cogs: excludeMissingCogs });
       if (storeId) params.append('store_id', storeId);
       const res = await fetch(`${apiBase}/reporting/monthly-pnl?${params.toString()}`, { headers: authHeaders() });
       const data = await res.json();
@@ -40,7 +43,7 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
     setError('');
     setLoading(true);
     try {
-      const params = new URLSearchParams({ store_id: storeId, month, include_disputed: includeDisputed });
+      const params = new URLSearchParams({ store_id: storeId, month, include_disputed: includeDisputed, exclude_missing_cogs: excludeMissingCogs });
       const res = await fetch(`${apiBase}/reporting/monthly-store-statement?${params.toString()}`, { headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) {
@@ -58,8 +61,8 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
     }
   };
 
-  useEffect(() => { if (view === 'pnl') loadPnl(); }, [view, year, storeId, includeDisputed]);
-  useEffect(() => { if (view === 'statement') loadStatement(); }, [view, month, storeId, includeDisputed]);
+  useEffect(() => { if (view === 'pnl') loadPnl(); }, [view, year, storeId, includeDisputed, excludeMissingCogs]);
+  useEffect(() => { if (view === 'statement') loadStatement(); }, [view, month, storeId, includeDisputed, excludeMissingCogs]);
 
   const rowLines = pnl ? [
     ['Gross Revenue', 'gross_revenue'], ['Platform Fees', 'platform_fees'], ['Ads Fees', 'ads_fees'],
@@ -100,8 +103,15 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
           <input type="checkbox" checked={includeDisputed} onChange={e => setIncludeDisputed(e.target.checked)} className="rounded" />
           Include disputed orders
         </label>
-        {pnl && <span className="text-gray-400">({pnl.excluded_count} orders currently excluded as disputed)</span>}
-        {statement && <span className="text-gray-400">(dispute filter: {statement.include_disputed ? 'including' : 'excluding'} disputed)</span>}
+        <label className="flex items-center gap-1.5">
+          <input type="checkbox" checked={excludeMissingCogs} onChange={e => setExcludeMissingCogs(e.target.checked)} className="rounded" />
+          Exclude orders missing COGS
+        </label>
+        {pnl && <span className="text-gray-400">({pnl.excluded_count} excluded as disputed{excludeMissingCogs ? `, ${pnl.missing_cogs_count} excluded — missing COGS` : ''})</span>}
+        {statement && <span className="text-gray-400">
+          (dispute filter: {statement.include_disputed ? 'including' : 'excluding'} disputed
+          {statement.missing_cogs_count > 0 && `, ${statement.missing_cogs_count} order${statement.missing_cogs_count === 1 ? '' : 's'} missing COGS${excludeMissingCogs ? ' — excluded' : ''}`})
+        </span>}
       </div>
 
       {error && (
@@ -149,11 +159,32 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
           <div className="overflow-x-auto border rounded">
             <table className="min-w-full text-xs">
               <thead className="bg-gray-50">
-                <tr>{['Date','Market Order ID','Item','Total Price','Earnings','COGS','Status','Dispute','Net Profit','Comments'].map(h => <th key={h} className="px-3 py-2 text-left font-bold text-gray-500 uppercase">{h}</th>)}</tr>
+                <tr>{['', 'Date','Market Order ID','Item','Total Price','Earnings','COGS','Status','Dispute','Net Profit','Comments'].map(h => <th key={h} className="px-3 py-2 text-left font-bold text-gray-500 uppercase">{h}</th>)}</tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {statement.rows.map((r, i) => (
                   <tr key={i}>
+                    <td className="px-2 py-2 relative">
+                      {r.cogs_missing && (
+                        <>
+                          <button onClick={() => setCogsPopoverKey(cogsPopoverKey === i ? null : i)} title="COGS missing" className="text-amber-500 hover:text-amber-600">
+                            <AlertTriangle size={14} />
+                          </button>
+                          {cogsPopoverKey === i && (
+                            <div className="absolute z-20 top-6 left-0 bg-white border border-amber-200 shadow-lg rounded p-3 w-56 text-xs space-y-2">
+                              <div className="text-amber-700 font-semibold">COGS missing</div>
+                              <div className="text-gray-500">No matched supplier order — its cost isn't counted in this order's profit.</div>
+                              <button
+                                onClick={() => { setCogsPopoverKey(null); onGoToOrderMatching && onGoToOrderMatching(r.market_order_id); }}
+                                className="text-emerald-600 hover:underline font-semibold"
+                              >
+                                View in Order Matching →
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </td>
                     <td className="px-3 py-2">{r.order_date}</td>
                     <td className="px-3 py-2 font-mono">{r.market_order_id}</td>
                     <td className="px-3 py-2 max-w-[140px] truncate">{r.item_title}</td>
@@ -167,12 +198,12 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
                   </tr>
                 ))}
                 {statement.rows.length === 0 && (
-                  <tr><td colSpan={10} className="px-3 py-6 text-center text-gray-400">No orders for this month.</td></tr>
+                  <tr><td colSpan={11} className="px-3 py-6 text-center text-gray-400">No orders for this month.</td></tr>
                 )}
               </tbody>
               <tfoot className="bg-gray-50 font-bold">
                 <tr>
-                  <td className="px-3 py-2" colSpan={3}>Totals ({statement.totals?.total_orders || 0} orders)</td>
+                  <td className="px-3 py-2" colSpan={4}>Totals ({statement.totals?.total_orders || 0} orders)</td>
                   <td className="px-3 py-2">${Number(statement.totals?.total_price || 0).toFixed(2)}</td>
                   <td className="px-3 py-2">${Number(statement.totals?.total_earnings || 0).toFixed(2)}</td>
                   <td className="px-3 py-2">${Number(statement.totals?.total_cogs || 0).toFixed(2)}</td>
@@ -181,7 +212,7 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
                   <td className="px-3 py-2"></td>
                 </tr>
                 <tr>
-                  <td className="px-3 py-2" colSpan={10}>Gross Margin: {Number(statement.totals?.gross_margin || 0).toFixed(1)}% &nbsp; | &nbsp; Net Margin: {Number(statement.totals?.net_margin || 0).toFixed(1)}%</td>
+                  <td className="px-3 py-2" colSpan={11}>Gross Margin: {Number(statement.totals?.gross_margin || 0).toFixed(1)}% &nbsp; | &nbsp; Net Margin: {Number(statement.totals?.net_margin || 0).toFixed(1)}%</td>
                 </tr>
               </tfoot>
             </table>

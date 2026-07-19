@@ -25,6 +25,11 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [highlightMarketOrderId, setHighlightMarketOrderId] = useState(null);
+  const goToOrderMatching = (marketOrderId) => {
+    setHighlightMarketOrderId(marketOrderId);
+    setActiveTab('order_matching');
+  };
 
   // Selector State
   const [businesses, setBusinesses] = useState([]);
@@ -1204,13 +1209,13 @@ export default function App() {
 
           {/* NEW MODULE TABS */}
           {activeTab === 'market_orders' && (user.role === 'admin' || user.role === 'bookkeeper') && (
-            <MarketOrders apiBase={API_BASE} authHeaders={getAuthHeaders} stores={stores} customOptions={customOptions} canEdit={true} />
+            <MarketOrders apiBase={API_BASE} authHeaders={getAuthHeaders} stores={stores} customOptions={customOptions} canEdit={true} onGoToOrderMatching={goToOrderMatching} />
           )}
           {activeTab === 'supplier_orders' && (user.role === 'admin' || user.role === 'bookkeeper') && (
             <SupplierOrders apiBase={API_BASE} authHeaders={getAuthHeaders} stores={stores} customOptions={customOptions} canEdit={true} />
           )}
           {activeTab === 'order_matching' && (user.role === 'admin' || user.role === 'bookkeeper') && (
-            <OrderMatching apiBase={API_BASE} authHeaders={getAuthHeaders} stores={stores} canEdit={true} />
+            <OrderMatching apiBase={API_BASE} authHeaders={getAuthHeaders} stores={stores} canEdit={true} highlightMarketOrderId={highlightMarketOrderId} onHighlightConsumed={() => setHighlightMarketOrderId(null)} />
           )}
           {activeTab === 'transactions' && (user.role === 'admin' || user.role === 'bookkeeper') && (
             <TransactionsTab apiBase={API_BASE} authHeaders={getAuthHeaders} stores={stores} />
@@ -1233,7 +1238,7 @@ export default function App() {
             />
           )}
           {activeTab === 'reporting' && (
-            <ReportingTab apiBase={API_BASE} authHeaders={getAuthHeaders} stores={stores} selectedStoreIds={selectedStoreIds} selectedBusinessId={selectedBusinessId} />
+            <ReportingTab apiBase={API_BASE} authHeaders={getAuthHeaders} stores={stores} selectedStoreIds={selectedStoreIds} selectedBusinessId={selectedBusinessId} onGoToOrderMatching={goToOrderMatching} />
           )}
 
           </ErrorBoundary>

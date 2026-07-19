@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw, AlertTriangle, Link as LinkIcon, X } from 'lucide-react';
 
-export default function OrderMatching({ apiBase, authHeaders, stores, canEdit }) {
+export default function OrderMatching({ apiBase, authHeaders, stores, canEdit, highlightMarketOrderId, onHighlightConsumed }) {
   const [matches, setMatches] = useState([]);
   const [filters, setFilters] = useState({ match_status: '', store_id: '' });
   const [editingKeyId, setEditingKeyId] = useState(null);
@@ -9,6 +9,7 @@ export default function OrderMatching({ apiBase, authHeaders, stores, canEdit })
   const [linkModal, setLinkModal] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const highlightRef = useRef(null);
 
   const load = async () => {
     const params = new URLSearchParams();
@@ -21,6 +22,22 @@ export default function OrderMatching({ apiBase, authHeaders, stores, canEdit })
   };
 
   useEffect(() => { load(); }, [filters]);
+
+  // Jumped here from another screen with a specific order to look at — clear any status filter
+  // that might hide it, then scroll to and flash-highlight that row once the data loads.
+  useEffect(() => {
+    if (highlightMarketOrderId) {
+      setFilters(f => ({ ...f, match_status: '' }));
+    }
+  }, [highlightMarketOrderId]);
+
+  useEffect(() => {
+    if (highlightMarketOrderId && matches.length > 0 && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const t = setTimeout(() => { if (onHighlightConsumed) onHighlightConsumed(); }, 4000);
+      return () => clearTimeout(t);
+    }
+  }, [highlightMarketOrderId, matches]);
 
   const saveParsedKey = async (id) => {
     await fetch(`${apiBase}/order-matches/${id}/parsed-key`, { method: 'PUT', headers: authHeaders(), body: JSON.stringify({ parsed_match_key: keyDraft }) });
@@ -96,8 +113,14 @@ export default function OrderMatching({ apiBase, authHeaders, stores, canEdit })
       </div>
 
       <div className="space-y-2">
-        {matches.map(m => (
-          <div key={m.id} className={`border rounded p-3 text-xs ${m.soft_mismatch ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'}`}>
+        {matches.map(m => {
+          const isHighlighted = highlightMarketOrderId && m.market_order_id === highlightMarketOrderId;
+          return (
+          <div
+            key={m.id}
+            ref={isHighlighted ? highlightRef : null}
+            className={`border rounded p-3 text-xs transition-shadow ${isHighlighted ? 'ring-2 ring-emerald-500 border-emerald-400 bg-emerald-50' : m.soft_mismatch ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'}`}
+          >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 {statusBadge(m.match_status)}
@@ -166,7 +189,8 @@ export default function OrderMatching({ apiBase, authHeaders, stores, canEdit })
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
         {matches.length === 0 && <div className="text-center text-gray-400 py-8">No order matches found.</div>}
       </div>
 

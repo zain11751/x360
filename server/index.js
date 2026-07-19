@@ -821,23 +821,29 @@ app.get('/api/market-orders', requireAuth, enforcePermission('market_orders', 'v
     let i = 1;
 
     if (store_id) {
-      conditions.push(`store_id = $${i++}`);
+      conditions.push(`mo.store_id = $${i++}`);
       params.push(store_id);
     } else if (req.user.role !== 'admin') {
       if (access.storeIds.length === 0) return res.json([]);
-      conditions.push(`store_id IN (${access.storeIds.map(() => `$${i++}`).join(',')})`);
+      conditions.push(`mo.store_id IN (${access.storeIds.map(() => `$${i++}`).join(',')})`);
       params.push(...access.storeIds);
     }
-    if (date_from) { conditions.push(`order_date >= $${i++}`); params.push(date_from); }
-    if (date_to) { conditions.push(`order_date <= $${i++}`); params.push(date_to); }
-    if (order_status) { conditions.push(`order_status = $${i++}`); params.push(order_status); }
-    if (dispute_status) { conditions.push(`dispute_status = $${i++}`); params.push(dispute_status); }
-    if (order_tracker) { conditions.push(`order_tracker = $${i++}`); params.push(order_tracker); }
-    if (va_team) { conditions.push(`va_team = $${i++}`); params.push(va_team); }
-    if (review_status) { conditions.push(`review_status = $${i++}`); params.push(review_status); }
+    if (date_from) { conditions.push(`mo.order_date >= $${i++}`); params.push(date_from); }
+    if (date_to) { conditions.push(`mo.order_date <= $${i++}`); params.push(date_to); }
+    if (order_status) { conditions.push(`mo.order_status = $${i++}`); params.push(order_status); }
+    if (dispute_status) { conditions.push(`mo.dispute_status = $${i++}`); params.push(dispute_status); }
+    if (order_tracker) { conditions.push(`mo.order_tracker = $${i++}`); params.push(order_tracker); }
+    if (va_team) { conditions.push(`mo.va_team = $${i++}`); params.push(va_team); }
+    if (review_status) { conditions.push(`mo.review_status = $${i++}`); params.push(review_status); }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-    const { rows } = await db.query(`SELECT * FROM market_orders ${where} ORDER BY order_date DESC`, params);
+    const { rows } = await db.query(
+      `SELECT mo.*,
+        EXISTS(SELECT 1 FROM order_matches om WHERE om.market_order_id = mo.id AND om.match_status = 'matched') as has_cogs
+       FROM market_orders mo ${where}
+       ORDER BY mo.order_date DESC`,
+      params
+    );
     res.json(rows);
   } catch (err) {
     console.error('GET market-orders error:', err);
@@ -925,7 +931,7 @@ app.put('/api/market-orders/:id', requireAuth, enforcePermission('market_orders'
 
 app.get('/api/supplier-orders', requireAuth, enforcePermission('supplier_orders', 'view'), async (req, res) => {
   try {
-    const { store_id, source_vendor, date_from, date_to, dispute_status, order_tracker, va_team, review_status } = req.query;
+    const { store_id, source_vendor, date_from, date_to, dispute_status, order_tracker, va_team, review_status, order_status } = req.query;
     const access = await getAccessibleResources(req.user);
     let conditions = [];
     let params = [];
@@ -944,6 +950,7 @@ app.get('/api/supplier-orders', requireAuth, enforcePermission('supplier_orders'
     if (order_tracker) { conditions.push(`order_tracker = $${i++}`); params.push(order_tracker); }
     if (va_team) { conditions.push(`va_team = $${i++}`); params.push(va_team); }
     if (review_status) { conditions.push(`review_status = $${i++}`); params.push(review_status); }
+    if (order_status) { conditions.push(`order_status = $${i++}`); params.push(order_status); }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const { rows } = await db.query(`SELECT * FROM supplier_orders ${where} ORDER BY supplier_order_date DESC`, params);
@@ -1481,7 +1488,17 @@ function csvToObjects(text) {
   if (rawRows.length === 0) return { headers: [], objects: [] };
   const headerIdx = findHeaderRowIndex(rawRows);
   const headers = rawRows[headerIdx].map(h => h.trim());
-  const dataRows = rawRows.slice(headerIdx + 1);
+
+  // Some exports (eBay, etc.) append trailing footer/summary lines after the real data, e.g.
+  // "427,record(s) downloaded," or "Seller ID : gtx_360" — these have only 1-2 non-blank cells,
+  // far below any real data row (even a sparse one, like a secondary line-item row in a multi-item
+  // order). A flat minimum catches the junk without risking real-but-sparse rows.
+  const minColsForDataRow = Math.min(5, headers.length);
+  const dataRows = rawRows.slice(headerIdx + 1).filter(r => {
+    const nonBlank = r.filter(c => c && c.trim() !== '').length;
+    return nonBlank >= minColsForDataRow;
+  });
+
   const objects = dataRows.map(r => {
     const obj = {};
     headers.forEach((h, idx) => { obj[h] = r[idx] !== undefined ? r[idx].trim() : ''; });
@@ -1983,16 +2000,17 @@ async function getMatchedSupplierOrderIds(marketOrderIds) {
 
 app.get('/api/reporting/monthly-pnl', requireAuth, enforcePermission('reporting', 'view'), async (req, res) => {
   try {
-    const { store_id, year, include_disputed } = req.query;
+    const { store_id, year, include_disputed, exclude_missing_cogs } = req.query;
     const access = await getAccessibleResources(req.user);
     const includeDisputed = include_disputed === 'true';
+    const excludeMissingCogs = exclude_missing_cogs === 'true';
 
     let storeIds;
     if (store_id) storeIds = [store_id];
     else if (req.user.role === 'admin') { const { rows } = await db.query('SELECT id FROM stores'); storeIds = rows.map(r => r.id); }
     else storeIds = access.storeIds;
 
-    if (storeIds.length === 0) return res.json({ months: [], excluded_count: 0 });
+    if (storeIds.length === 0) return res.json({ months: [], excluded_count: 0, missing_cogs_count: 0 });
 
     const excludedLabels = await getExcludedDisputeLabels();
     const yr = year || new Date().getFullYear();
@@ -2001,9 +2019,12 @@ app.get('/api/reporting/monthly-pnl', requireAuth, enforcePermission('reporting'
       `SELECT * FROM market_orders WHERE store_id IN (${placeholders}) AND order_date >= $${storeIds.length + 1} AND order_date < $${storeIds.length + 2}`,
       [...storeIds, `${yr}-01-01`, `${parseInt(yr) + 1}-01-01`]
     );
+    const moById = {};
+    for (const mo of marketOrders) moById[mo.id] = mo;
 
     const months = {};
     let excludedCount = 0;
+    let missingCogsCount = 0;
 
     for (const mo of marketOrders) {
       const monthKey = String(mo.order_date).slice(0, 7);
@@ -2040,6 +2061,32 @@ app.get('/api/reporting/monthly-pnl', requireAuth, enforcePermission('reporting'
         }
       }
 
+      // Which of this month's orders have NO matched supplier order at all (COGS missing)?
+      if (m.included_order_ids.length > 0) {
+        const idPlaceholders = m.included_order_ids.map((_, i) => `$${i + 1}`).join(',');
+        const { rows: matchedOrderIdRows } = await db.query(
+          `SELECT DISTINCT market_order_id FROM order_matches WHERE match_status = 'matched' AND market_order_id IN (${idPlaceholders})`,
+          m.included_order_ids
+        );
+        const matchedOrderIdSet = new Set(matchedOrderIdRows.map(r => r.market_order_id));
+        const missingCogsIds = m.included_order_ids.filter(id => !matchedOrderIdSet.has(id));
+        missingCogsCount += missingCogsIds.length;
+
+        if (excludeMissingCogs) {
+          for (const missingId of missingCogsIds) {
+            const missingMo = moById[missingId];
+            if (!missingMo) continue;
+            m.gross_revenue -= toNum(missingMo.gross_amount);
+            m.platform_fees -= toNum(missingMo.platform_fee);
+            m.ads_fees -= toNum(missingMo.ads_fee);
+            m.shipping_cost -= toNum(missingMo.shipping_fee_cost);
+            m.other_fees -= toNum(missingMo.other_fee);
+            m.refunds -= toNum(missingMo.refund_amount);
+            m.platform_net_earnings -= toNum(missingMo.net_earnings);
+          }
+        }
+      }
+
       const { rows: expenseRows } = await db.query(
         `SELECT COALESCE(SUM(amount),0) as total FROM expenses WHERE store_id IN (${placeholders}) AND expense_date >= $${storeIds.length + 1} AND expense_date < $${storeIds.length + 2}`,
         [...storeIds, `${monthKey}-01`, monthKey === `${yr}-12` ? `${parseInt(yr) + 1}-01-01` : `${monthKey.slice(0,4)}-${String(parseInt(monthKey.slice(5,7))+1).padStart(2,'0')}-01`]
@@ -2055,7 +2102,13 @@ app.get('/api/reporting/monthly-pnl', requireAuth, enforcePermission('reporting'
       delete m.included_order_ids;
     }
 
-    res.json({ months: Object.values(months).sort((a, b) => a.month.localeCompare(b.month)), excluded_count: excludedCount, include_disputed: includeDisputed });
+    res.json({
+      months: Object.values(months).sort((a, b) => a.month.localeCompare(b.month)),
+      excluded_count: excludedCount,
+      include_disputed: includeDisputed,
+      missing_cogs_count: missingCogsCount,
+      exclude_missing_cogs: excludeMissingCogs
+    });
   } catch (err) {
     console.error('Reporting P&L error:', err);
     res.status(500).json({ error: err.message || 'Internal server error' });
@@ -2064,9 +2117,10 @@ app.get('/api/reporting/monthly-pnl', requireAuth, enforcePermission('reporting'
 
 app.get('/api/reporting/monthly-store-statement', requireAuth, enforcePermission('reporting', 'view'), async (req, res) => {
   try {
-    const { store_id, month, include_disputed } = req.query;
+    const { store_id, month, include_disputed, exclude_missing_cogs } = req.query;
     if (!store_id || !month) return res.status(400).json({ error: 'store_id and month are required' });
     const includeDisputed = include_disputed === 'true';
+    const excludeMissingCogs = exclude_missing_cogs === 'true';
     const excludedLabels = await getExcludedDisputeLabels();
 
     const { rows: marketOrders } = await db.query(
@@ -2076,6 +2130,7 @@ app.get('/api/reporting/monthly-store-statement', requireAuth, enforcePermission
 
     const result = [];
     let totals = { total_orders: 0, total_price: 0, total_earnings: 0, total_cogs: 0, total_net_profit: 0 };
+    let missingCogsCount = 0;
 
     for (const mo of marketOrders) {
       const moDisputed = mo.dispute_status && excludedLabels.includes(mo.dispute_status);
@@ -2086,6 +2141,10 @@ app.get('/api/reporting/monthly-store-statement', requireAuth, enforcePermission
          WHERE om.market_order_id = $1 AND om.match_status = 'matched'`,
         [mo.id]
       );
+
+      const cogsMissing = matches.length === 0;
+      if (cogsMissing) missingCogsCount++;
+      if (cogsMissing && excludeMissingCogs) continue;
 
       let cogs = 0;
       let anyDisputed = moDisputed;
@@ -2099,9 +2158,10 @@ app.get('/api/reporting/monthly-store-statement', requireAuth, enforcePermission
 
       const netProfit = toNum(mo.net_earnings) - cogs;
       result.push({
-        order_date: mo.order_date, market_order_id: mo.market_order_id, item_title: mo.item_title,
+        id: mo.id, order_date: mo.order_date, market_order_id: mo.market_order_id, item_title: mo.item_title,
         total_price: toNum(mo.gross_amount), order_earnings: toNum(mo.net_earnings), cogs,
-        order_status: mo.order_status, dispute_status: mo.dispute_status, net_profit: netProfit, comments: mo.comments
+        order_status: mo.order_status, dispute_status: mo.dispute_status, net_profit: netProfit, comments: mo.comments,
+        cogs_missing: cogsMissing
       });
 
       totals.total_orders++;
@@ -2114,7 +2174,7 @@ app.get('/api/reporting/monthly-store-statement', requireAuth, enforcePermission
     totals.gross_margin = totals.total_price > 0 ? (totals.total_net_profit / totals.total_price) * 100 : 0;
     totals.net_margin = totals.total_earnings > 0 ? (totals.total_net_profit / totals.total_earnings) * 100 : 0;
 
-    res.json({ rows: result, totals, include_disputed: includeDisputed });
+    res.json({ rows: result, totals, include_disputed: includeDisputed, missing_cogs_count: missingCogsCount, exclude_missing_cogs: excludeMissingCogs });
   } catch (err) {
     console.error('Reporting store statement error:', err);
     res.status(500).json({ error: err.message || 'Internal server error' });

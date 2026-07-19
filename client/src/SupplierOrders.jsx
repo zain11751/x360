@@ -3,7 +3,7 @@ import { Plus, X, Edit2 } from 'lucide-react';
 
 export default function SupplierOrders({ apiBase, authHeaders, stores, customOptions, canEdit }) {
   const [orders, setOrders] = useState([]);
-  const [filters, setFilters] = useState({ store_id: '', source_vendor: '', date_from: '', date_to: '', dispute_status: '' });
+  const [filters, setFilters] = useState({ store_id: '', source_vendor: '', date_from: '', date_to: '', dispute_status: '', order_status: '' });
   const [editing, setEditing] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({});
@@ -65,6 +65,12 @@ export default function SupplierOrders({ apiBase, authHeaders, stores, customOpt
         <select value={filters.dispute_status} onChange={e => setFilters({...filters, dispute_status: e.target.value})} className="border border-gray-300 rounded px-2 py-1">
           <option value="">All Dispute Status</option>
           {opts('dispute_status').map(o => <option key={o.id} value={o.option_label}>{o.option_label}</option>)}
+        </select>
+        <select value={filters.order_status} onChange={e => setFilters({...filters, order_status: e.target.value})} className="border border-gray-300 rounded px-2 py-1">
+          <option value="">All Order Status</option>
+          <option value="Order Paid">Order Paid (not refunded)</option>
+          <option value="Refunded (Partial)">Refunded (Partial)</option>
+          <option value="Refunded (Full)">Refunded (Full)</option>
         </select>
       </div>
 
