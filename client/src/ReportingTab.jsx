@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import OrderDetailModal from './OrderDetailModal.jsx';
 
 export default function ReportingTab({ apiBase, authHeaders, stores, selectedStoreIds, selectedBusinessId, onGoToOrderMatching }) {
   const [view, setView] = useState('pnl');
@@ -14,6 +15,7 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [cogsPopoverKey, setCogsPopoverKey] = useState(null);
+  const [detailOrderId, setDetailOrderId] = useState(null);
 
   const loadPnl = async () => {
     setError('');
@@ -163,8 +165,8 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {statement.rows.map((r, i) => (
-                  <tr key={i}>
-                    <td className="px-2 py-2 relative">
+                  <tr key={i} className="hover:bg-gray-50 cursor-pointer" onClick={() => setDetailOrderId(r.id)}>
+                    <td className="px-2 py-2 relative" onClick={e => e.stopPropagation()}>
                       {r.cogs_missing && (
                         <>
                           <button onClick={() => setCogsPopoverKey(cogsPopoverKey === i ? null : i)} title="COGS missing" className="text-amber-500 hover:text-amber-600">
@@ -237,6 +239,16 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
             </table>
           </div>
         </div>
+      )}
+
+      {detailOrderId && (
+        <OrderDetailModal
+          apiBase={apiBase}
+          authHeaders={authHeaders}
+          marketOrderId={detailOrderId}
+          onClose={() => setDetailOrderId(null)}
+          onGoToOrderMatching={onGoToOrderMatching}
+        />
       )}
     </div>
   );

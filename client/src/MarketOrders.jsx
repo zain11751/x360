@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, X, Edit2, AlertTriangle } from 'lucide-react';
+import OrderDetailModal from './OrderDetailModal.jsx';
 
 export default function MarketOrders({ apiBase, authHeaders, stores, customOptions, canEdit, onGoToOrderMatching }) {
   const [orders, setOrders] = useState([]);
@@ -9,6 +10,7 @@ export default function MarketOrders({ apiBase, authHeaders, stores, customOptio
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(false);
   const [cogsPopoverId, setCogsPopoverId] = useState(null);
+  const [detailOrderId, setDetailOrderId] = useState(null);
 
   const opts = (key) => customOptions.filter(o => o.field_key === key && o.is_active);
 
@@ -98,8 +100,8 @@ export default function MarketOrders({ apiBase, authHeaders, stores, customOptio
           </thead>
           <tbody className="divide-y divide-gray-100">
             {orders.map(o => (
-              <tr key={o.id} className="hover:bg-gray-50">
-                <td className="px-2 py-2 relative">
+              <tr key={o.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => setDetailOrderId(o.id)}>
+                <td className="px-2 py-2 relative" onClick={e => e.stopPropagation()}>
                   {!o.has_cogs && (
                     <>
                       <button onClick={() => setCogsPopoverId(cogsPopoverId === o.id ? null : o.id)} title="COGS missing" className="text-amber-500 hover:text-amber-600">
@@ -130,7 +132,7 @@ export default function MarketOrders({ apiBase, authHeaders, stores, customOptio
                 <td className="px-3 py-2">{o.dispute_status}</td>
                 <td className="px-3 py-2">{o.order_tracker}</td>
                 <td className="px-3 py-2">{o.va_team}</td>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2" onClick={e => e.stopPropagation()}>
                   <button onClick={() => openEdit(o)} className="text-emerald-600 hover:underline flex items-center gap-1"><Edit2 size={12} />Edit</button>
                 </td>
               </tr>
@@ -241,6 +243,16 @@ export default function MarketOrders({ apiBase, authHeaders, stores, customOptio
             </form>
           </div>
         </div>
+      )}
+
+      {detailOrderId && (
+        <OrderDetailModal
+          apiBase={apiBase}
+          authHeaders={authHeaders}
+          marketOrderId={detailOrderId}
+          onClose={() => setDetailOrderId(null)}
+          onGoToOrderMatching={onGoToOrderMatching}
+        />
       )}
     </div>
   );

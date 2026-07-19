@@ -861,6 +861,31 @@ app.get('/api/market-orders/:id', requireAuth, enforcePermission('market_orders'
   }
 });
 
+// Read-only combined view: the market order plus every supplier order matched to it — powers the
+// "Order Detail" popup (eBay side + AliExpress side + total profit) on Market Orders / Store Statement.
+app.get('/api/market-orders/:id/detail', requireAuth, enforcePermission('market_orders', 'view'), async (req, res) => {
+  try {
+    const { rows: moRows } = await db.query('SELECT * FROM market_orders WHERE id = $1', [req.params.id]);
+    if (moRows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const marketOrder = moRows[0];
+
+    const { rows: supplierOrders } = await db.query(
+      `SELECT DISTINCT so.* FROM order_matches om
+       JOIN supplier_orders so ON om.supplier_order_id = so.id
+       WHERE om.market_order_id = $1 AND om.match_status = 'matched'`,
+      [req.params.id]
+    );
+
+    const totalCost = supplierOrders.reduce((sum, so) => sum + toNum(so.total_cost), 0);
+    const netProfit = toNum(marketOrder.net_earnings) - totalCost;
+
+    res.json({ market_order: marketOrder, supplier_orders: supplierOrders, total_cost: totalCost, net_profit: netProfit });
+  } catch (err) {
+    console.error('Market order detail error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.post('/api/market-orders', requireAuth, enforcePermission('market_orders', 'edit'), async (req, res) => {
   const b = req.body;
   if (!b.store_id || !b.market_order_id || !b.order_date) {
