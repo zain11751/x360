@@ -735,7 +735,7 @@ async function rebuildMatchesForMarketOrder(marketOrderId) {
       continue;
     }
 
-    const { rows: soRows } = await db.query('SELECT * FROM supplier_orders WHERE match_key = $1', [token]);
+    const { rows: soRows } = await db.query('SELECT * FROM supplier_orders WHERE match_key = $1 AND store_id = $2', [token, marketOrder.store_id]);
     if (soRows.length > 0) {
       const supplierOrder = soRows[0];
       const { rows: existingClaim } = await db.query(
@@ -783,8 +783,11 @@ async function rebuildMatchesForSupplierOrder(supplierOrderId) {
   if (!supplierOrder.match_key) return;
 
   const { rows: claimRows } = await db.query(
-    `SELECT * FROM order_matches WHERE parsed_match_key = $1 AND match_status IN ('unmatched_market', 'matched') ORDER BY created_at ASC`,
-    [supplierOrder.match_key]
+    `SELECT om.* FROM order_matches om
+     JOIN market_orders mo ON om.market_order_id = mo.id
+     WHERE om.parsed_match_key = $1 AND om.match_status IN ('unmatched_market', 'matched') AND mo.store_id = $2
+     ORDER BY om.created_at ASC`,
+    [supplierOrder.match_key, supplierOrder.store_id]
   );
 
   // Only take a row that's genuinely unclaimed (unmatched_market) or already points at this same
@@ -1086,7 +1089,16 @@ app.put('/api/order-matches/:id/parsed-key', requireAuth, enforcePermission('ord
   const { id } = req.params;
   const { parsed_match_key } = req.body;
   try {
-    const { rows: soRows } = await db.query('SELECT * FROM supplier_orders WHERE match_key = $1', [parsed_match_key]);
+    const { rows: matchRows } = await db.query(
+      `SELECT om.*, mo.store_id as mo_store_id FROM order_matches om LEFT JOIN market_orders mo ON om.market_order_id = mo.id WHERE om.id = $1`,
+      [id]
+    );
+    if (matchRows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const storeId = matchRows[0].mo_store_id;
+
+    const { rows: soRows } = storeId
+      ? await db.query('SELECT * FROM supplier_orders WHERE match_key = $1 AND store_id = $2', [parsed_match_key, storeId])
+      : { rows: [] };
     if (soRows.length > 0) {
       await db.query(
         `UPDATE order_matches SET parsed_match_key = $1, supplier_order_id = $2, supplier_match_key = $3, match_status = 'matched', source = 'manual' WHERE id = $4`,
