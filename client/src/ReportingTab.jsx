@@ -16,6 +16,7 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
   const [loading, setLoading] = useState(false);
   const [cogsPopoverKey, setCogsPopoverKey] = useState(null);
   const [detailOrderId, setDetailOrderId] = useState(null);
+  const [downloading, setDownloading] = useState(null);
 
   const loadPnl = async () => {
     setError('');
@@ -81,13 +82,64 @@ export default function ReportingTab({ apiBase, authHeaders, stores, selectedSto
     setDrillDown({ month: monthKey, line: lineKey, rows: data });
   };
 
+  const downloadExport = async (format) => {
+    if (view === 'statement' && !storeId) { alert('Select a single store first.'); return; }
+    setDownloading(format);
+    try {
+      const endpoint = view === 'pnl' ? 'monthly-pnl' : 'monthly-store-statement';
+      const params = new URLSearchParams({ format, include_disputed: includeDisputed, exclude_missing_cogs: excludeMissingCogs });
+      if (view === 'pnl') {
+        params.append('year', year);
+        if (storeId) params.append('store_id', storeId);
+      } else {
+        params.append('store_id', storeId);
+        params.append('month', month);
+      }
+      const res = await fetch(`${apiBase}/reporting/${endpoint}/export?${params.toString()}`, { headers: authHeaders() });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Download failed');
+        return;
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename="(.+)"/);
+      const filename = match ? match[1] : `report.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download error:', err);
+      alert('Download failed. Please try again.');
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h2 className="text-lg font-bold text-gray-800">Reporting</h2>
-        <div className="flex gap-2 text-sm">
-          <button onClick={() => setView('pnl')} className={`px-3 py-1 rounded ${view === 'pnl' ? 'bg-emerald-600 text-white' : 'bg-gray-100'}`}>Monthly P&L</button>
-          <button onClick={() => setView('statement')} className={`px-3 py-1 rounded ${view === 'statement' ? 'bg-emerald-600 text-white' : 'bg-gray-100'}`}>Store Statement</button>
+        <div className="flex items-center gap-3 text-sm">
+          <div className="flex gap-2">
+            <button onClick={() => setView('pnl')} className={`px-3 py-1 rounded ${view === 'pnl' ? 'bg-emerald-600 text-white' : 'bg-gray-100'}`}>Monthly P&L</button>
+            <button onClick={() => setView('statement')} className={`px-3 py-1 rounded ${view === 'statement' ? 'bg-emerald-600 text-white' : 'bg-gray-100'}`}>Store Statement</button>
+          </div>
+          {((view === 'pnl' && pnl) || (view === 'statement' && statement)) && (
+            <div className="flex gap-1.5">
+              <button onClick={() => downloadExport('xlsx')} disabled={downloading} className="px-3 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50 text-xs font-semibold disabled:opacity-50">
+                {downloading === 'xlsx' ? 'Downloading...' : '⬇ Excel'}
+              </button>
+              <button onClick={() => downloadExport('pdf')} disabled={downloading} className="px-3 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50 text-xs font-semibold disabled:opacity-50">
+                {downloading === 'pdf' ? 'Downloading...' : '⬇ PDF'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
